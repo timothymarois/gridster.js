@@ -4122,7 +4122,7 @@
 	};
 
 	fn.get_num_widgets = function () {
-		return this.$widgets.size();
+		return this.$widgets.length;
 	};
 
 	/**
