@@ -1,3 +1,11 @@
+<a name="v0.7.1"></a>
+## v0.7.1 (2018-02-14)
+
+
+#### Bug Fixes
+
+* Resizing an element from very large to very small was not possible because the resulting size deviated from the mouse position, especially in case of small grid dimensions
+
 <a name="v0.7.0"></a>
 ## v0.7.0 (2016-02-26)
 
