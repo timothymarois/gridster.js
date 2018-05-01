@@ -42,7 +42,14 @@ module.exports = function(grunt) {
 					'dist/jquery.<%= pkg.name %>.min.js': ['<%= concat.dist_js.dest %>']
 				}
 			},
-
+			dist_imports:{
+				cwd: './',
+				src: ['src/jquery.coords.js', 'src/jquery.collision.js', 'src/utils.js', 'src/jquery.draggable.js'],
+				dest: 'dist/',
+				flatten: true,
+				expand:true,
+		      	},
+			
 			dist_extras: {
 				files: {
 					'dist/jquery.<%= pkg.name %>.with-extras.min.js': ['<%= concat.dist_extras_js.dest %>']
