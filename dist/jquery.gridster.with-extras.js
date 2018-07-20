@@ -1,6 +1,6 @@
-/*! gridster.js - v0.7.1 - 2018-02-14
+/*! gridster.js - v0.7.0 - 2017-03-27
 * https://dsmorse.github.io/gridster.js/
-* Copyright (c) 2018 ducksboard; Licensed MIT */
+* Copyright (c) 2017 ducksboard; Licensed MIT */
 
 ;(function(root, factory) {
 	'use strict';
@@ -2275,7 +2275,7 @@
 			container_width: this.container_width,
 			move_element: false,
 			resize: true,
-			limit: { width: this.options.max_cols !== Infinity || this.options.limit.width, height: this.options.max_rows !== Infinity || this.options.limit.height },
+			limit: { width: this.options.max_cols !== Infinity || this.limit.width, height: this.options.max_rows !== Infinity || this.limit.height },
 			scroll_container: this.options.scroll_container,
 			start: $.proxy(this.on_start_resize, this),
 			stop: $.proxy(function (event, ui) {
@@ -2653,8 +2653,8 @@
 		var autogrow = this.options.max_cols === Infinity;
 		var width;
 
-		var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x)) - 0.2);
-		var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y)) - 0.2);
+		var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x * 2)) - 0.2);
+		var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y * 2)) - 0.2);
 
 		var size_x = Math.max(1, this.resize_initial_sizex + inc_units_x);
 		var size_y = Math.max(1, this.resize_initial_sizey + inc_units_y);
@@ -5031,7 +5031,7 @@
 	};
 
 	fn.get_num_widgets = function () {
-		return this.$widgets.length;
+		return this.$widgets.size();
 	};
 
 	/**
