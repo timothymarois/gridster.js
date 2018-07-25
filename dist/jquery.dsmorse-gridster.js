@@ -1,114 +1,939 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>src/jquery.gridster.js - gridster.js</title>
-    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
-    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
-    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
-    <link rel="icon" href="../assets/favicon.ico">
-    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
-</head>
-<body class="yui3-skin-sam">
+/*! gridster.js - v0.8.0 - 2018-07-24
+* https://dsmorse.github.io/gridster.js/
+* Copyright (c) 2018 ducksboard; Licensed MIT */
 
-<div id="doc">
-    <div id="hd" class="yui3-g header">
-        <div class="yui3-u-3-4">
-                <h1><img src="https://ducksboard.com/static/images/svg/logo-ducksboard-black-small.svg" title="gridster.js"></h1>
-        </div>
-        <div class="yui3-u-1-4 version">
-            <em>API Docs for: v0.8.0</em>
-        </div>
-    </div>
-    <div id="bd" class="yui3-g">
+;(function(root, factory) {
+	'use strict';
+    if(typeof exports === 'object') {
+        module.exports = factory(require('jquery'));
+    }
+    else if (typeof define === 'function' && define.amd) {
+        define('gridster-coords', ['jquery'], factory);
+    } else {
+       root.GridsterCoords = factory(root.$ || root.jQuery);
+    }
 
-        <div class="yui3-u-1-4">
-            <div id="docs-sidebar" class="sidebar apidocs">
-                <div id="api-list">
-                    <h2 class="off-left">APIs</h2>
-                    <div id="api-tabview" class="tabview">
-                        <ul class="tabs">
-                            <li><a href="#api-classes">Classes</a></li>
-                            <li><a href="#api-modules">Modules</a></li>
-                        </ul>
-                
-                        <div id="api-tabview-filter">
-                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
-                        </div>
-                
-                        <div id="api-tabview-panel">
-                            <ul id="api-classes" class="apis classes">
-                                <li><a href="../classes/Collision.html">Collision</a></li>
-                                <li><a href="../classes/Coords.html">Coords</a></li>
-                                <li><a href="../classes/Draggable.html">Draggable</a></li>
-                                <li><a href="../classes/Gridster.html">Gridster</a></li>
-                            </ul>
-                
-                            <ul id="api-modules" class="apis modules">
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="yui3-u-3-4">
-                <div id="api-options">
-                    Show:
-                    <label for="api-show-inherited">
-                        <input type="checkbox" id="api-show-inherited" checked>
-                        Inherited
-                    </label>
-            
-                    <label for="api-show-protected">
-                        <input type="checkbox" id="api-show-protected">
-                        Protected
-                    </label>
-            
-                    <label for="api-show-private">
-                        <input type="checkbox" id="api-show-private">
-                        Private
-                    </label>
-                    <label for="api-show-deprecated">
-                        <input type="checkbox" id="api-show-deprecated">
-                        Deprecated
-                    </label>
-            
-                </div>
-            
-            <div class="apidocs">
-                <div id="docs-main">
-                    <div class="content">
-<h1 class="file-heading">File: src/jquery.gridster.js</h1>
+}(this, function($) {
+	'use strict';
+    /**
+    * Creates objects with coordinates (x1, y1, x2, y2, cx, cy, width, height)
+    * to simulate DOM elements on the screen.
+    * Coords is used by Gridster to create a faux grid with any DOM element can
+    * collide.
+    *
+    * @class Coords
+    * @param {HTMLElement|Object} obj The jQuery HTMLElement or a object with: left,
+    * top, width and height properties.
+    * @return {Object} Coords instance.
+    * @constructor
+    */
+    function Coords(obj) {
+        if (obj[0] && $.isPlainObject(obj[0])) {
+            this.data = obj[0];
+        }else {
+            this.el = obj;
+        }
 
-<div class="file">
-    <pre class="code prettyprint linenums">
-/*
- * jquery.gridster
- * https://github.com/ducksboard/gridster.js
- *
- * Copyright (c) 2012 ducksboard
- * Licensed under the MIT licenses.
- */
+        this.isCoords = true;
+        this.coords = {};
+        this.init();
+        return this;
+    }
+
+
+    var fn = Coords.prototype;
+
+
+    fn.init = function(){
+        this.set();
+        this.original_coords = this.get();
+    };
+
+
+    fn.set = function(update, not_update_offsets) {
+        var el = this.el;
+
+        if (el && !update) {
+            this.data = el.offset();
+            this.data.width = el[0].scrollWidth;
+            this.data.height = el[0].scrollHeight;
+        }
+
+        if (el && update && !not_update_offsets) {
+            var offset = el.offset();
+            this.data.top = offset.top;
+            this.data.left = offset.left;
+        }
+
+        var d = this.data;
+
+        if ( d.left === undefined ) {
+            d.left = d.x1;
+        }
+
+        if ( d.top === undefined ) {
+            d.top = d.y1;
+        }
+
+        this.coords.x1 = d.left;
+        this.coords.y1 = d.top;
+        this.coords.x2 = d.left + d.width;
+        this.coords.y2 = d.top + d.height;
+        this.coords.cx = d.left + (d.width / 2);
+        this.coords.cy = d.top + (d.height / 2);
+        this.coords.width  = d.width;
+        this.coords.height = d.height;
+        this.coords.el  = el || false ;
+
+        return this;
+    };
+
+
+    fn.update = function(data){
+        if (!data && !this.el) {
+            return this;
+        }
+
+        if (data) {
+            var new_data = $.extend({}, this.data, data);
+            this.data = new_data;
+            return this.set(true, true);
+        }
+
+        this.set(true);
+        return this;
+    };
+
+
+    fn.get = function(){
+        return this.coords;
+    };
+
+    fn.destroy = function() {
+        this.el.removeData('coords');
+        delete this.el;
+    };
+
+    //jQuery adapter
+    $.fn.coords = function() {
+        if (this.data('coords') ) {
+            return this.data('coords');
+        }
+
+        var ins = new Coords(this);
+        this.data('coords', ins);
+        return ins;
+    };
+
+    return Coords;
+
+}));
+
+;(function(root, factory) {
+	'use strict';
+    if(typeof exports === 'object') {
+        module.exports = factory(require('jquery'));
+    }
+    else if (typeof define === 'function' && define.amd) {
+        define('gridster-collision', ['jquery', 'gridster-coords'], factory);
+    } else {
+        root.GridsterCollision = factory(root.$ || root.jQuery,
+            root.GridsterCoords);
+    }
+
+}(this, function($, Coords) {
+	'use strict';
+    var defaults = {
+        colliders_context: document.body,
+        overlapping_region: 'C'
+        // ,on_overlap: function(collider_data){},
+        // on_overlap_start : function(collider_data){},
+        // on_overlap_stop : function(collider_data){}
+    };
+
+
+    /**
+    * Detects collisions between a DOM element against other DOM elements or
+    * Coords objects.
+    *
+    * @class Collision
+    * @uses Coords
+    * @param {HTMLElement} el The jQuery wrapped HTMLElement.
+    * @param {HTMLElement|Array} colliders Can be a jQuery collection
+    *  of HTMLElements or an Array of Coords instances.
+    * @param {Object} [options] An Object with all options you want to
+    *        overwrite:
+    *   @param {String} [options.overlapping_region] Determines when collision
+    *    is valid, depending on the overlapped area. Values can be: 'N', 'S',
+    *    'W', 'E', 'C' or 'all'. Default is 'C'.
+    *   @param {Function} [options.on_overlap_start] Executes a function the first
+    *    time each `collider ` is overlapped.
+    *   @param {Function} [options.on_overlap_stop] Executes a function when a
+    *    `collider` is no longer collided.
+    *   @param {Function} [options.on_overlap] Executes a function when the
+    * mouse is moved during the collision.
+    * @return {Object} Collision instance.
+    * @constructor
+    */
+    function Collision(el, colliders, options) {
+        this.options = $.extend(defaults, options);
+        this.$element = el;
+        this.last_colliders = [];
+        this.last_colliders_coords = [];
+        this.set_colliders(colliders);
+
+        this.init();
+    }
+
+    Collision.defaults = defaults;
+
+    var fn = Collision.prototype;
+
+
+    fn.init = function() {
+        this.find_collisions();
+    };
+
+
+    fn.overlaps = function(a, b) {
+        var x = false;
+        var y = false;
+
+        if ((b.x1 >= a.x1 && b.x1 <= a.x2) ||
+            (b.x2 >= a.x1 && b.x2 <= a.x2) ||
+            (a.x1 >= b.x1 && a.x2 <= b.x2)
+        ) { x = true; }
+
+        if ((b.y1 >= a.y1 && b.y1 <= a.y2) ||
+            (b.y2 >= a.y1 && b.y2 <= a.y2) ||
+            (a.y1 >= b.y1 && a.y2 <= b.y2)
+        ) { y = true; }
+
+        return (x && y);
+    };
+
+
+    fn.detect_overlapping_region = function(a, b){
+        var regionX = '';
+        var regionY = '';
+
+        if (a.y1 > b.cy && a.y1 < b.y2) { regionX = 'N'; }
+        if (a.y2 > b.y1 && a.y2 < b.cy) { regionX = 'S'; }
+        if (a.x1 > b.cx && a.x1 < b.x2) { regionY = 'W'; }
+        if (a.x2 > b.x1 && a.x2 < b.cx) { regionY = 'E'; }
+
+        return (regionX + regionY) || 'C';
+    };
+
+
+    fn.calculate_overlapped_area_coords = function(a, b){
+        var x1 = Math.max(a.x1, b.x1);
+        var y1 = Math.max(a.y1, b.y1);
+        var x2 = Math.min(a.x2, b.x2);
+        var y2 = Math.min(a.y2, b.y2);
+
+        return $({
+            left: x1,
+            top: y1,
+             width : (x2 - x1),
+            height: (y2 - y1)
+          }).coords().get();
+    };
+
+
+    fn.calculate_overlapped_area = function(coords){
+        return (coords.width * coords.height);
+    };
+
+
+    fn.manage_colliders_start_stop = function(new_colliders_coords, start_callback, stop_callback){
+        var last = this.last_colliders_coords;
+
+        for (var i = 0, il = last.length; i < il; i++) {
+            if ($.inArray(last[i], new_colliders_coords) === -1) {
+                start_callback.call(this, last[i]);
+            }
+        }
+
+        for (var j = 0, jl = new_colliders_coords.length; j < jl; j++) {
+            if ($.inArray(new_colliders_coords[j], last) === -1) {
+                stop_callback.call(this, new_colliders_coords[j]);
+            }
+
+        }
+    };
+
+
+    fn.find_collisions = function(player_data_coords){
+        var self = this;
+        var overlapping_region = this.options.overlapping_region;
+        var colliders_coords = [];
+        var colliders_data = [];
+        var $colliders = (this.colliders || this.$colliders);
+        var count = $colliders.length;
+        var player_coords = self.$element.coords()
+                             .update(player_data_coords || false).get();
+
+        while(count--){
+          var $collider = self.$colliders ?
+                           $($colliders[count]) : $colliders[count];
+          var $collider_coords_ins = ($collider.isCoords) ?
+                  $collider : $collider.coords();
+          var collider_coords = $collider_coords_ins.get();
+          var overlaps = self.overlaps(player_coords, collider_coords);
+
+          if (!overlaps) {
+            continue;
+          }
+
+          var region = self.detect_overlapping_region(
+              player_coords, collider_coords);
+
+            //todo: make this an option
+            if (region === overlapping_region || overlapping_region === 'all') {
+
+                var area_coords = self.calculate_overlapped_area_coords(
+                    player_coords, collider_coords);
+                var area = self.calculate_overlapped_area(area_coords);
+                if ( 0 !== area ) {
+                    var collider_data = {
+                        area: area,
+                        area_coords : area_coords,
+                        region: region,
+                        coords: collider_coords,
+                        player_coords: player_coords,
+                        el: $collider
+                    };
+
+                    if (self.options.on_overlap) {
+                        self.options.on_overlap.call(this, collider_data);
+                    }
+                    colliders_coords.push($collider_coords_ins);
+                    colliders_data.push(collider_data);
+                }
+            }
+        }
+
+        if (self.options.on_overlap_stop || self.options.on_overlap_start) {
+            this.manage_colliders_start_stop(colliders_coords,
+                self.options.on_overlap_start, self.options.on_overlap_stop);
+        }
+
+        this.last_colliders_coords = colliders_coords;
+
+        return colliders_data;
+    };
+
+
+    fn.get_closest_colliders = function(player_data_coords){
+        var colliders = this.find_collisions(player_data_coords);
+
+        colliders.sort(function(a, b) {
+            /* if colliders are being overlapped by the "C" (center) region,
+             * we have to set a lower index in the array to which they are placed
+             * above in the grid. */
+            if (a.region === 'C' && b.region === 'C') {
+                if (a.coords.y1 < b.coords.y1 || a.coords.x1 < b.coords.x1) {
+                    return - 1;
+                }else{
+                    return 1;
+                }
+            }
+
+            if (a.area < b.area) {
+                return 1;
+            }
+
+            return 1;
+        });
+        return colliders;
+    };
+
+
+    fn.set_colliders = function(colliders) {
+        if (typeof colliders === 'string' || colliders instanceof $) {
+            this.$colliders = $(colliders,
+                 this.options.colliders_context).not(this.$element);
+        }else{
+            this.colliders = $(colliders);
+        }
+    };
+
+
+    //jQuery adapter
+    $.fn.collision = function(collider, options) {
+          return new Collision( this, collider, options );
+    };
+
+    return Collision;
+
+}));
+
+(function (window, undefined) {
+	'use strict';
+	/* Delay, debounce and throttle functions taken from underscore.js
+	 *
+	 * Copyright (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and
+	 * Investigative Reporters & Editors
+	 *
+	 * Permission is hereby granted, free of charge, to any person
+	 * obtaining a copy of this software and associated documentation
+	 * files (the "Software"), to deal in the Software without
+	 * restriction, including without limitation the rights to use,
+	 * copy, modify, merge, publish, distribute, sublicense, and/or sell
+	 * copies of the Software, and to permit persons to whom the
+	 * Software is furnished to do so, subject to the following
+	 * conditions:
+	 *
+	 * The above copyright notice and this permission notice shall be
+	 * included in all copies or substantial portions of the Software.
+	 *
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+	 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	 * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	 * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+	 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+	 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+	 * OTHER DEALINGS IN THE SOFTWARE.
+	 */
+
+	window.delay = function (func, wait) {
+		var args = Array.prototype.slice.call(arguments, 2);
+		return setTimeout(function () {
+			return func.apply(null, args);
+		}, wait);
+	};
+
+	window.debounce = function (func, wait, immediate) {
+		var timeout;
+		return function () {
+			var context = this, args = arguments;
+			var later = function () {
+				timeout = null;
+				if (!immediate) {
+					func.apply(context, args);
+				}
+			};
+			if (immediate && !timeout) {
+				func.apply(context, args);
+			}
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	};
+
+	window.throttle = function (func, wait) {
+		var context, args, timeout, throttling, more, result;
+		var whenDone = debounce(
+				function () {
+					more = throttling = false;
+				}, wait);
+		return function () {
+			context = this;
+			args = arguments;
+			var later = function () {
+				timeout = null;
+				if (more) {
+					func.apply(context, args);
+				}
+				whenDone();
+			};
+			if (!timeout) {
+				timeout = setTimeout(later, wait);
+			}
+			if (throttling) {
+				more = true;
+			} else {
+				result = func.apply(context, args);
+			}
+			whenDone();
+			throttling = true;
+			return result;
+		};
+	};
+
+})(window);
+
+;(function(root, factory) {
+ 'use strict';
+    if(typeof exports === 'object') {
+        module.exports = factory(require('jquery'));
+    }
+    else if (typeof define === 'function' && define.amd) {
+        define('gridster-draggable', ['jquery'], factory);
+    } else {
+        root.GridsterDraggable = factory(root.$ || root.jQuery);
+    }
+
+}(this, function($) {
+	'use strict';
+    var defaults = {
+        items: 'li',
+        distance: 1,
+        limit: {width: true, height: false},
+        offset_left: 0,
+        autoscroll: true,
+        ignore_dragging: ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'], // or function
+        handle: null,
+        container_width: 0,  // 0 == auto
+        move_element: true,
+        helper: false,  // or 'clone'
+        remove_helper: true
+        // drag: function(e) {},
+        // start : function(e, ui) {},
+        // stop : function(e) {}
+    };
+
+    var $window = $(window);
+    var dir_map = { x : 'left', y : 'top' };
+    var isTouch = !!('ontouchstart' in window);
+
+    var capitalize = function(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    var idCounter = 0;
+    var uniqId = function() {
+        return ++idCounter + '';
+    };
+
+    /**
+    * Basic drag implementation for DOM elements inside a container.
+    * Provide start/stop/drag callbacks.
+    *
+    * @class Draggable
+    * @param {HTMLElement} el The HTMLelement that contains all the widgets
+    *  to be dragged.
+    * @param {Object} [options] An Object with all options you want to
+    *        overwrite:
+    *    @param {HTMLElement|String} [options.items] Define who will
+    *     be the draggable items. Can be a CSS Selector String or a
+    *     collection of HTMLElements.
+    *    @param {Number} [options.distance] Distance in pixels after mousedown
+    *     the mouse must move before dragging should start.
+    *    @param {Boolean} [options.limit] Constrains dragging to the width of
+    *     the container
+    *    @param {Object|Function} [options.ignore_dragging] Array of node names
+    *      that sould not trigger dragging, by default is `['INPUT', 'TEXTAREA',
+    *      'SELECT', 'BUTTON']`. If a function is used return true to ignore dragging.
+    *    @param {offset_left} [options.offset_left] Offset added to the item
+    *     that is being dragged.
+    *    @param {Number} [options.drag] Executes a callback when the mouse is
+    *     moved during the dragging.
+    *    @param {Number} [options.start] Executes a callback when the drag
+    *     starts.
+    *    @param {Number} [options.stop] Executes a callback when the drag stops.
+    * @return {Object} Returns `el`.
+    * @constructor
+    */
+    function Draggable(el, options) {
+        this.options = $.extend({}, defaults, options);
+        this.$document = $(document);
+        this.$container = $(el);
+        this.$scroll_container = this.options.scroll_container === window ?
+            $(window) : this.$container.closest(this.options.scroll_container);
+        this.is_dragging = false;
+        this.player_min_left = 0 + this.options.offset_left;
+		this.player_min_top = 0 + this.options.offset_top;
+        this.id = uniqId();
+        this.ns = '.gridster-draggable-' + this.id;
+        this.init();
+    }
+
+    Draggable.defaults = defaults;
+
+    var fn = Draggable.prototype;
+
+    fn.init = function() {
+        var pos = this.$container.css('position');
+        this.calculate_dimensions();
+        this.$container.css('position', pos === 'static' ? 'relative' : pos);
+        this.disabled = false;
+        this.events();
+
+        $window.bind(this.nsEvent('resize'),
+				throttle($.proxy(this.calculate_dimensions, this), 200));
+    };
+
+    fn.nsEvent = function(ev) {
+        return (ev || '') + this.ns;
+    };
+
+    fn.events = function() {
+        this.pointer_events = {
+            start: this.nsEvent('touchstart') + ' ' + this.nsEvent('mousedown'),
+            move: this.nsEvent('touchmove') + ' ' + this.nsEvent('mousemove'),
+            end: this.nsEvent('touchend') + ' ' + this.nsEvent('mouseup')
+        };
+
+        this.$container.on(this.nsEvent('selectstart'),
+            $.proxy(this.on_select_start, this));
+
+        this.$container.on(this.pointer_events.start, this.options.items,
+            $.proxy(this.drag_handler, this));
+
+        this.$document.on(this.pointer_events.end, $.proxy(function(e) {
+            this.is_dragging = false;
+            if (this.disabled) { return; }
+            this.$document.off(this.pointer_events.move);
+            if (this.drag_start) {
+                this.on_dragstop(e);
+            }
+        }, this));
+    };
+
+    fn.get_actual_pos = function($el) {
+		return $el.position();
+    };
+
+
+    fn.get_mouse_pos = function(e) {
+        if (e.originalEvent && e.originalEvent.touches) {
+            var oe = e.originalEvent;
+            e = oe.touches.length ? oe.touches[0] : oe.changedTouches[0];
+        }
+
+        return {
+            left: e.clientX,
+            top: e.clientY
+        };
+    };
+
+
+    fn.get_offset = function(e) {
+        e.preventDefault();
+        var mouse_actual_pos = this.get_mouse_pos(e);
+        var diff_x = Math.round(
+            mouse_actual_pos.left - this.mouse_init_pos.left);
+        var diff_y = Math.round(mouse_actual_pos.top - this.mouse_init_pos.top);
+
+        var left = Math.round(this.el_init_offset.left +
+                              diff_x - this.baseX +
+                              this.$scroll_container.scrollLeft() -
+                              this.scroll_container_offset_x);
+        var top = Math.round(this.el_init_offset.top +
+                             diff_y - this.baseY +
+                             this.$scroll_container.scrollTop() -
+                             this.scroll_container_offset_y);
+
+        if (this.options.limit.width) {
+            if (left > this.player_max_left) {
+                left = this.player_max_left;
+            } else if(left < this.player_min_left) {
+                left = this.player_min_left;
+            }
+		}
+		if (this.options.limit.height) {
+			if (top > this.player_max_top) {
+                top = this.player_max_top;
+            } else if (top < this.player_min_top) {
+                top = this.player_min_top;
+            }
+        }
+
+        return {
+            position: {
+                left: left,
+                top: top
+            },
+            pointer: {
+                left: mouse_actual_pos.left,
+                top: mouse_actual_pos.top,
+                diff_left: diff_x + (this.$scroll_container.scrollLeft() -
+                           this.scroll_container_offset_x),
+                diff_top: diff_y + (this.$scroll_container.scrollTop() -
+                          this.scroll_container_offset_y)
+            }
+        };
+    };
+
+
+    fn.get_drag_data = function(e) {
+        var offset = this.get_offset(e);
+        offset.$player = this.$player;
+        offset.$helper = this.helper ? this.$helper : this.$player;
+
+        return offset;
+    };
+
+
+    fn.set_limits = function(container_width) {
+        container_width || (container_width = this.$container.width());
+        this.player_max_left = (container_width - this.player_width +
+            -this.options.offset_left);
+        this.player_max_top = (this.options.container_height - this.player_height +
+            -this.options.offset_top);
+
+        this.options.container_width = container_width;
+
+        return this;
+    };
+
+
+    fn.scroll_in = function(axis, data) {
+        var dir_prop = dir_map[axis];
+
+        var area_size = 50;
+        var scroll_inc = 30;
+        var scrollDir = 'scroll' + capitalize(dir_prop);
+
+        var is_x = axis === 'x';
+        var scroller_size = is_x ? this.scroller_width : this.scroller_height;
+        var doc_size;
+        if (this.$scroll_container === window){
+            doc_size = is_x ? this.$scroll_container.width() :
+                              this.$scroll_container.height();
+        }else{
+            doc_size = is_x ? this.$scroll_container[0].scrollWidth :
+                              this.$scroll_container[0].scrollHeight;
+        }
+        var player_size = is_x ? this.$player.width() : this.$player.height();
+
+        var next_scroll;
+        var scroll_offset = this.$scroll_container[scrollDir]();
+        var min_scroll_pos = scroll_offset;
+        var max_scroll_pos = min_scroll_pos + scroller_size;
+
+        var mouse_next_zone = max_scroll_pos - area_size;  // down/right
+        var mouse_prev_zone = min_scroll_pos + area_size;  // up/left
+
+        var abs_mouse_pos = min_scroll_pos + data.pointer[dir_prop];
+
+        var max_player_pos = (doc_size - scroller_size + player_size);
+
+        if (abs_mouse_pos >= mouse_next_zone) {
+            next_scroll = scroll_offset + scroll_inc;
+            if (next_scroll < max_player_pos) {
+                this.$scroll_container[scrollDir](next_scroll);
+                this['scroll_offset_' + axis] += scroll_inc;
+            }
+        }
+
+        if (abs_mouse_pos <= mouse_prev_zone) {
+            next_scroll = scroll_offset - scroll_inc;
+            if (next_scroll > 0) {
+                this.$scroll_container[scrollDir](next_scroll);
+                this['scroll_offset_' + axis] -= scroll_inc;
+            }
+        }
+
+        return this;
+    };
+
+
+    fn.manage_scroll = function(data) {
+        this.scroll_in('x', data);
+        this.scroll_in('y', data);
+    };
+
+
+    fn.calculate_dimensions = function() {
+        this.scroller_height = this.$scroll_container.height();
+        this.scroller_width = this.$scroll_container.width();
+    };
+
+
+    fn.drag_handler = function(e) {
+        // skip if drag is disabled, or click was not done with the mouse primary button
+        if (this.disabled || e.which !== 1 && !isTouch) {
+            return;
+        }
+
+        if (this.ignore_drag(e)) {
+            return;
+        }
+
+        var self = this;
+        var first = true;
+        this.$player = $(e.currentTarget);
+
+        this.el_init_pos = this.get_actual_pos(this.$player);
+        this.mouse_init_pos = this.get_mouse_pos(e);
+        this.offsetY = this.mouse_init_pos.top - this.el_init_pos.top;
+
+        this.$document.on(this.pointer_events.move, function(mme) {
+            var mouse_actual_pos = self.get_mouse_pos(mme);
+            var diff_x = Math.abs(
+                mouse_actual_pos.left - self.mouse_init_pos.left);
+            var diff_y = Math.abs(
+                mouse_actual_pos.top - self.mouse_init_pos.top);
+            if (!(diff_x > self.options.distance ||
+                diff_y > self.options.distance)
+                ) {
+                return false;
+            }
+
+            if (first) {
+                first = false;
+                self.on_dragstart.call(self, mme);
+                return false;
+            }
+
+            if (self.is_dragging === true) {
+                self.on_dragmove.call(self, mme);
+            }
+
+            return false;
+        });
+
+        if (!isTouch) { return false; }
+    };
+
+
+    fn.on_dragstart = function(e) {
+        e.preventDefault();
+
+        if (this.is_dragging) { return this; }
+
+        this.drag_start = this.is_dragging = true;
+        var offset = this.$container.offset();
+        this.baseX = Math.round(offset.left);
+        this.baseY = Math.round(offset.top);
+
+        if (this.options.helper === 'clone') {
+            this.$helper = this.$player.clone()
+                .appendTo(this.$container).addClass('helper');
+            this.helper = true;
+        } else {
+            this.helper = false;
+        }
+
+        this.scroll_container_offset_y = this.$scroll_container.scrollTop();
+        this.scroll_container_offset_x = this.$scroll_container.scrollLeft();
+        this.el_init_offset = this.$player.offset();
+        this.player_width = this.$player.width();
+		this.player_height = this.$player.height();
+
+        this.set_limits(this.options.container_width);
+
+        if (this.options.start) {
+            this.options.start.call(this.$player, e, this.get_drag_data(e));
+        }
+        return false;
+    };
+
+
+    fn.on_dragmove = function(e) {
+        var data = this.get_drag_data(e);
+
+        this.options.autoscroll && this.manage_scroll(data);
+
+        if (this.options.move_element) {
+            (this.helper ? this.$helper : this.$player).css({
+                'position': 'absolute',
+                'left' : data.position.left,
+                'top' : data.position.top
+            });
+        }
+
+        var last_position = this.last_position || data.position;
+        data.prev_position = last_position;
+
+        if (this.options.drag) {
+            this.options.drag.call(this.$player, e, data);
+        }
+
+        this.last_position = data.position;
+        return false;
+    };
+
+
+    fn.on_dragstop = function(e) {
+        var data = this.get_drag_data(e);
+        this.drag_start = false;
+
+        if (this.options.stop) {
+            this.options.stop.call(this.$player, e, data);
+        }
+
+        if (this.helper && this.options.remove_helper) {
+            this.$helper.remove();
+        }
+
+        return false;
+    };
+
+    fn.on_select_start = function(e) {
+        if (this.disabled) { return; }
+
+        if (this.ignore_drag(e)) {
+            return;
+        }
+
+        return false;
+    };
+
+    fn.enable = function() {
+        this.disabled = false;
+    };
+
+    fn.disable = function() {
+        this.disabled = true;
+    };
+
+    fn.destroy = function() {
+        this.disable();
+
+        this.$container.off(this.ns);
+        this.$document.off(this.ns);
+        $window.off(this.ns);
+
+        $.removeData(this.$container, 'drag');
+    };
+
+    fn.ignore_drag = function(event) {
+        if (this.options.handle) {
+            return !$(event.target).is(this.options.handle);
+        }
+
+        if ($.isFunction(this.options.ignore_dragging)) {
+            return this.options.ignore_dragging(event);
+        }
+
+        if (this.options.resize) {
+            return ! $(event.target).is(this.options.items);
+        }
+
+        return $(event.target).is(this.options.ignore_dragging.join(', '));
+    };
+
+    //jQuery adapter
+    $.fn.gridDraggable = function ( options ) {
+        return new Draggable(this, options);
+    };
+
+	$.fn.dragg = function (options) {
+		return this.each(function () {
+			if (!$.data(this, 'drag')) {
+				$.data(this, 'drag', new Draggable(this, options));
+			}
+		});
+	};
+
+    return Draggable;
+
+}));
 
 (function (root, factory) {
-	&#x27;use strict&#x27;;
-	if (typeof exports === &#x27;object&#x27;) {
-		module.exports = factory(require(&#x27;jquery&#x27;), require(&#x27;./jquery.draggable.js&#x27;), require(&#x27;./jquery.collision.js&#x27;), require(&#x27;./jquery.coords.js&#x27;), require(&#x27;./utils.js&#x27;));
+	'use strict';
+	if (typeof exports === 'object') {
+		module.exports = factory(require('jquery'), require('./jquery.draggable.js'), require('./jquery.collision.js'), require('./jquery.coords.js'), require('./utils.js'));
 	}
-	else if (typeof define === &#x27;function&#x27; &amp;&amp; define.amd) {
-		define([&#x27;jquery&#x27;, &#x27;gridster-draggable&#x27;, &#x27;gridster-collision&#x27;], factory);
+	else if (typeof define === 'function' && define.amd) {
+		define(['jquery', 'gridster-draggable', 'gridster-collision'], factory);
 	} else {
 		root.Gridster = factory(root.$ || root.jQuery, root.GridsterDraggable,
 				root.GridsterCollision);
 	}
 
 }(this, function ($, Draggable, Collision) {
-	&#x27;use strict&#x27;;
+	'use strict';
 	var $window = $(window),
 			defaults = {
-				namespace: &#x27;&#x27;,
-				widget_selector: &#x27;li&#x27;,
-				static_class: &#x27;static&#x27;,
+				namespace: '',
+				widget_selector: 'li',
+				static_class: 'static',
 				widget_margins: [10, 10],
 				widget_base_dimensions: [400, 225],
 				extra_rows: 0,
@@ -156,15 +981,15 @@
 					wait_for_mouseup: false
 				},
 				draggable: {
-					items: &#x27;.gs-w:not(.static)&#x27;,
+					items: '.gs-w:not(.static)',
 					distance: 4,
 					ignore_dragging: Draggable.defaults.ignore_dragging.slice(0)
 				},
 				resize: {
 					enabled: false,
-					axes: [&#x27;both&#x27;],
-					handle_append_to: &#x27;&#x27;,
-					handle_class: &#x27;gs-resize-handle&#x27;,
+					axes: ['both'],
+					handle_append_to: '',
+					handle_class: 'gs-resize-handle',
 					max_size: [Infinity, Infinity],
 					min_size: [1, 1]
 				},
@@ -198,9 +1023,9 @@
 	 *        @param {Boolean} [options.autogenerate_stylesheet] If true, all the
 	 *            CSS required to position all widgets in their respective columns
 	 *            and rows will be generated automatically and injected to the
-	 *            &#x60;&lt;head&gt;&#x60; of the document. You can set this to false, and write
+	 *            `<head>` of the document. You can set this to false, and write
 	 *            your own CSS targeting rows and cols via data-attributes like so:
-	 *            &#x60;[data-col=&quot;1&quot;] { left: 10px; }&#x60;
+	 *            `[data-col="1"] { left: 10px; }`
 	 *        @param {Boolean} [options.avoid_overlapped_widgets] Avoid that widgets loaded
 	 *            from the DOM can be overlapped. It is helpful if the positions were
 	 *            bad stored in the database or if there was any conflict.
@@ -208,18 +1033,18 @@
 	 *            method or not when the plugin is instantiated.
 	 *        @param {Function} [options.serialize_params] Return the data you want
 	 *            for each widget in the serialization. Two arguments are passed:
-	 *            &#x60;$w&#x60;: the jQuery wrapped HTMLElement, and &#x60;wgd&#x60;: the grid
-	 *            coords object (&#x60;col&#x60;, &#x60;row&#x60;, &#x60;size_x&#x60;, &#x60;size_y&#x60;).
+	 *            `$w`: the jQuery wrapped HTMLElement, and `wgd`: the grid
+	 *            coords object (`col`, `row`, `size_x`, `size_y`).
 	 *        @param {Boolean} [options.shift_larger_widgets_down] Determines if how widgets get pushes
 	 *            out of the way of the player. If set to false smaller widgets will not move larger
 	 *            widgets out of their way . Defaults to true.
 	 *        @param {Boolean} [options.shift_widgets_up] Determines if the player will automatically
 	 *            condense the grid and not allow a widget to have space above it. Defaults to true.
 	 *        @param {Function} [options.show_element] Makes the given element visible. Two arguments are passed:
-	 *            &#x60;$el&#x60;: the jQuery wrapped HTMLElement, and &#x60;callback&#x60;: a function that is executed
+	 *            `$el`: the jQuery wrapped HTMLElement, and `callback`: a function that is executed
 	 *            after the element is made visible. The callback parameter is optional.
 	 *        @param {Function} [options.hide_element] Hides the given element. Two arguments are passed:
-	 *            &#x60;$el&#x60;: the jQuery wrapped HTMLElement, and &#x60;callback&#x60;: a function that is executed
+	 *            `$el`: the jQuery wrapped HTMLElement, and `callback`: a function that is executed
 	 *            after the element is hidden. The callback parameter is optional.
 	 *        @param {Object} [options.collision] An Object with all options for
 	 *            Collision class you want to overwrite. See Collision docs for
@@ -236,17 +1061,17 @@
 	 *                @param {Boolean} [options.resize.enabled] Set to true to enable
 	 *                    resizing.
 	 *                @param {Array} [options.resize.axes] Axes in which widgets can be
-	 *                    resized. Possible values: [&#x27;x&#x27;, &#x27;y&#x27;, &#x27;both&#x27;].
+	 *                    resized. Possible values: ['x', 'y', 'both'].
 	 *                @param {String} [options.resize.handle_append_to] Set a valid CSS
 	 *                    selector to append resize handles to.
 	 *                @param {String} [options.resize.handle_class] CSS class name used
 	 *                    by resize handles.
 	 *                @param {Array} [options.resize.max_size] Limit widget dimensions
 	 *                    when resizing. Array values should be integers:
-	 *                    &#x60;[max_cols_occupied, max_rows_occupied]&#x60;
+	 *                    `[max_cols_occupied, max_rows_occupied]`
 	 *                @param {Array} [options.resize.min_size] Limit widget dimensions
 	 *                    when resizing. Array values should be integers:
-	 *                    &#x60;[min_cols_occupied, min_rows_occupied]&#x60;
+	 *                    `[min_cols_occupied, min_rows_occupied]`
 	 *                @param {Function} [options.resize.start] Function executed
 	 *                    when resizing starts.
 	 *                @param {Function} [options.resize.resize] Function executed
@@ -265,7 +1090,7 @@
 		this.$scroll_container = this.options.scroll_container === window ?
 				$(window) : this.$el.closest(this.options.scroll_container);
 		this.$wrapper = this.$el.parent();
-		this.$widgets = this.$el.children(this.options.widget_selector).addClass(&#x27;gs-w&#x27;);
+		this.$widgets = this.$el.children(this.options.widget_selector).addClass('gs-w');
 		this.$changed = $([]);
 		this.w_queue = {};
 		if (this.is_responsive()) {
@@ -283,11 +1108,11 @@
 		this.$style_tags = $([]);
 		
 		if (typeof (this.options.limit) === typeof (true)) {
-		    console.log(&#x27;limit: bool is deprecated, consider using limit: { width: boolean, height: boolean} instead&#x27;);
+		    console.log('limit: bool is deprecated, consider using limit: { width: boolean, height: boolean} instead');
 		    this.options.limit = { width: this.options.limit, height: this.options.limit };
 		}
 		
-		this.options.auto_init &amp;&amp; this.init();
+		this.options.auto_init && this.init();
 	}
 
 	Gridster.defaults = defaults;
@@ -300,16 +1125,16 @@
 	 * @return {Object} Returns the converted object.
 	 */
 	function convInt (obj) {
-		var props = [&#x27;col&#x27;, &#x27;row&#x27;, &#x27;size_x&#x27;, &#x27;size_y&#x27;];
+		var props = ['col', 'row', 'size_x', 'size_y'];
 		var tmp = {};
-		for (var i = 0, len = props.length; i &lt; len; i++) {
+		for (var i = 0, len = props.length; i < len; i++) {
 			var prop = props[i];
 			if (!(prop in obj)) {
-				throw new Error(&#x27;Not exists property &#x60;&#x27; + prop + &#x27;&#x60;&#x27;);
+				throw new Error('Not exists property `' + prop + '`');
 			}
 			var val = obj[prop];
 			if (!val || isNaN(val)) {
-				throw new Error(&#x27;Invalid value of &#x60;&#x27; + prop + &#x27;&#x60; property&#x27;);
+				throw new Error('Invalid value of `' + prop + '` property');
 			}
 			tmp[prop] = +val;
 		}
@@ -333,7 +1158,7 @@
 
 			a = convInt(a);
 			b = convInt(b);
-			if (a.row &gt; b.row) {
+			if (a.row > b.row) {
 				return 1;
 			}
 			return -1;
@@ -355,7 +1180,7 @@
 		widgets = widgets.sort(function (a, b) {
 			a = convInt(a);
 			b = convInt(b);
-			if (a.row &gt; b.row || a.row === b.row &amp;&amp; a.col &gt; b.col) {
+			if (a.row > b.row || a.row === b.row && a.col > b.col) {
 				return 1;
 			}
 			return -1;
@@ -377,7 +1202,7 @@
 		widgets = widgets.sort(function (a, b) {
 			a = convInt(a);
 			b = convInt(b);
-			if (a.col &gt; b.col) {
+			if (a.col > b.col) {
 				return 1;
 			}
 			return -1;
@@ -399,7 +1224,7 @@
 		widgets = widgets.sort(function (a, b) {
 			a = convInt(a);
 			b = convInt(b);
-			if (a.row + a.size_y &lt; b.row + b.size_y) {
+			if (a.row + a.size_y < b.row + b.size_y) {
 				return 1;
 			}
 			return -1;
@@ -413,14 +1238,14 @@
 	var fn = Gridster.prototype;
 
 	fn.init = function () {
-		this.options.resize.enabled &amp;&amp; this.setup_resize();
+		this.options.resize.enabled && this.setup_resize();
 		this.generate_grid_and_stylesheet();
 		this.get_widgets_from_DOM();
 		this.set_dom_grid_height();
 		this.set_dom_grid_width();
-		this.$wrapper.addClass(&#x27;ready&#x27;);
+		this.$wrapper.addClass('ready');
 		this.draggable();
-		this.options.resize.enabled &amp;&amp; this.resizable();
+		this.options.resize.enabled && this.resizable();
 
 		if (this.options.center_widgets) {
 			setTimeout($.proxy(function () {
@@ -428,7 +1253,7 @@
 			}, this), 0);
 		}
 
-		$window.bind(&#x27;resize.gridster&#x27;, throttle(
+		$window.bind('resize.gridster', throttle(
 				$.proxy(this.recalculate_faux_grid, this), 200));
 	};
 
@@ -440,7 +1265,7 @@
 	 * @return {Gridster} Returns the instance of the Gridster Class.
 	 */
 	fn.disable = function () {
-		this.$wrapper.find(&#x27;.player-revert&#x27;).removeClass(&#x27;player-revert&#x27;);
+		this.$wrapper.find('.player-revert').removeClass('player-revert');
 		this.drag_api.disable();
 		return this;
 	};
@@ -465,7 +1290,7 @@
 	 * @return {Gridster} Returns instance of gridster Class.
 	 */
 	fn.disable_resize = function () {
-		this.$el.addClass(&#x27;gs-resize-disabled&#x27;);
+		this.$el.addClass('gs-resize-disabled');
 		this.resize_api.disable();
 		return this;
 	};
@@ -478,7 +1303,7 @@
 	 * @return {Gridster} Returns instance of gridster Class.
 	 */
 	fn.enable_resize = function () {
-		this.$el.removeClass(&#x27;gs-resize-disabled&#x27;);
+		this.$el.removeClass('gs-resize-disabled');
 		this.resize_api.enable();
 		return this;
 	};
@@ -505,7 +1330,7 @@
 		size_x || (size_x = 1);
 		size_y || (size_y = 1);
 
-		if (!col &amp;&amp; !row) {
+		if (!col && !row) {
 			pos = this.next_position(size_x, size_y);
 			if(pos === false)
 		    {
@@ -524,11 +1349,11 @@
 		}
 
 		var $w = $(html).attr({
-			&#x27;data-col&#x27;: pos.col,
-			&#x27;data-row&#x27;: pos.row,
-			&#x27;data-sizex&#x27;: size_x,
-			&#x27;data-sizey&#x27;: size_y
-		}).addClass(&#x27;gs-w&#x27;).appendTo(this.$el).hide();
+			'data-col': pos.col,
+			'data-row': pos.row,
+			'data-sizex': size_x,
+			'data-sizey': size_y
+		}).addClass('gs-w').appendTo(this.$el).hide();
 
 		this.$widgets = this.$widgets.add($w);
 		this.$changed = this.$changed.add($w);
@@ -536,7 +1361,7 @@
 		this.register_widget($w);
 
 		var reqRows = parseInt(pos.row) + (parseInt(pos.size_y) - 1);
-		if (this.rows &lt; reqRows) {
+		if (this.rows < reqRows) {
 			this.add_faux_rows(reqRows - this.rows);
 		}
 
@@ -575,14 +1400,14 @@
 	 * @return {Gridster} Returns instance of gridster Class.
 	 */
 	fn.set_widget_min_size = function ($widget, min_size) {
-		$widget = typeof $widget === &#x27;number&#x27; ?
+		$widget = typeof $widget === 'number' ?
 				this.$widgets.eq($widget) : $widget;
 
 		if (!$widget.length) {
 			return this;
 		}
 
-		var wgd = $widget.data(&#x27;coords&#x27;).grid;
+		var wgd = $widget.data('coords').grid;
 		wgd.min_size_x = min_size[0];
 		wgd.min_size_y = min_size[1];
 
@@ -600,14 +1425,14 @@
 	 * @return {Gridster} Returns instance of gridster Class.
 	 */
 	fn.set_widget_max_size = function ($widget, max_size) {
-		$widget = typeof $widget === &#x27;number&#x27; ?
+		$widget = typeof $widget === 'number' ?
 				this.$widgets.eq($widget) : $widget;
 
 		if (!$widget.length) {
 			return this;
 		}
 
-		var wgd = $widget.data(&#x27;coords&#x27;).grid;
+		var wgd = $widget.data('coords').grid;
 		wgd.max_size_x = max_size[0];
 		wgd.max_size_y = max_size[1];
 
@@ -626,7 +1451,7 @@
 	fn.add_resize_handle = function ($w) {
 		var $append_to = this.options.resize.handle_append_to ? $(this.options.resize.handle_append_to, $w) : $w;
 
-		if (($append_to.children(&#x27;span[class~=\&#x27;&#x27; + this.resize_handle_class + &#x27;\&#x27;]&#x27;)).length === 0) {
+		if (($append_to.children('span[class~=\'' + this.resize_handle_class + '\']')).length === 0) {
 			$(this.resize_handle_tpl).appendTo($append_to);
 		}
 
@@ -641,7 +1466,7 @@
 	 * @param {HTMLElement} $widget The jQuery wrapped HTMLElement
 	 *  representing the widget.
 	 * @param {Number} [size_x] The number of columns that will occupy the widget.
-	 *  By default &lt;code&gt;size_x&lt;/code&gt; is limited to the space available from
+	 *  By default <code>size_x</code> is limited to the space available from
 	 *  the column where the widget begins, until the last column to the right.
 	 * @param {Number} [size_y] The number of rows that will occupy the widget.
 	 * @param {Function} [callback] Function executed when the widget is removed.
@@ -704,12 +1529,12 @@
 		size_y || (size_y = wgd.size_y);
 
 		var old_size_y = wgd.size_y;
-		$widget.attr(&#x27;pre_expand_col&#x27;, wgd.col);
-		$widget.attr(&#x27;pre_expand_sizex&#x27;, wgd.size_x);
-		$widget.attr(&#x27;pre_expand_sizey&#x27;, wgd.size_y);
+		$widget.attr('pre_expand_col', wgd.col);
+		$widget.attr('pre_expand_sizex', wgd.size_x);
+		$widget.attr('pre_expand_sizey', wgd.size_y);
 		var new_col = col || 1;
 
-		if (size_y &gt; old_size_y) {
+		if (size_y > old_size_y) {
 			this.add_faux_rows(Math.max(size_y - old_size_y, 0));
 		}
 
@@ -733,7 +1558,7 @@
 	};
 
 	/**
-	 * Collapse the widget to it&#x27;s pre-expanded size
+	 * Collapse the widget to it's pre-expanded size
 	 *
 	 * @method collapse_widget
 	 * @param {HTMLElement} $widget The jQuery wrapped HTMLElement
@@ -743,10 +1568,10 @@
 	 */
 	fn.collapse_widget = function ($widget, callback) {
 		var wgd = $widget.coords().grid;
-		var size_x = parseInt($widget.attr(&#x27;pre_expand_sizex&#x27;));
-		var size_y = parseInt($widget.attr(&#x27;pre_expand_sizey&#x27;));
+		var size_x = parseInt($widget.attr('pre_expand_sizex'));
+		var size_y = parseInt($widget.attr('pre_expand_sizey'));
 
-		var new_col = parseInt($widget.attr(&#x27;pre_expand_col&#x27;));
+		var new_col = parseInt($widget.attr('pre_expand_col'));
 
 		var new_grid_data = {
 			col: new_col,
@@ -829,8 +1654,8 @@
 
 		var col_dif = (col_count - this.prev_col_count) / 2;
 
-		if (col_dif &lt; 0) {
-			if (this.get_min_col() &gt; col_dif * -1) {
+		if (col_dif < 0) {
+			if (this.get_min_col() > col_dif * -1) {
 				this.shift_cols(col_dif);
 			} else {
 				this.resize_widget_dimensions(this.options);
@@ -840,7 +1665,7 @@
 				this.resize_widget_dimensions(this.options);
 			}, this), 0);
 
-		} else if (col_dif &gt; 0) {
+		} else if (col_dif > 0) {
 			this.resize_widget_dimensions(this.options);
 
 			setTimeout($.proxy(function () {
@@ -878,7 +1703,7 @@
 		widgets_coords.each($.proxy(function (i, widget) {
 			var $widget = $(widget.el);
 			var wgd = $widget.coords().grid;
-			var col = parseInt($widget.attr(&#x27;data-col&#x27;));
+			var col = parseInt($widget.attr('data-col'));
 
 			var new_grid_data = {
 				col: Math.max(Math.round(col + col_dif), 1),
@@ -963,7 +1788,7 @@
 
 		this.add_to_gridmap(new_wgd, $widget);
 
-		$widget.removeClass(&#x27;player-revert&#x27;);
+		$widget.removeClass('player-revert');
 
 		this.update_widget_dimensions($widget, new_wgd);
 
@@ -1019,7 +1844,7 @@
 			var $w = $(w),
 					wgd = $w.coords().grid;
 			/*jshint -W018 */
-			if (!(wgd.row &lt;= (row + size_y - 1))) {
+			if (!(wgd.row <= (row + size_y - 1))) {
 				return;
 			}
 			/*jshint +W018 */
@@ -1084,9 +1909,9 @@
 		var valid_pos = [];
 		var rows_l;
 
-		for (var c = 1; c &lt; cols_l; c++) {
+		for (var c = 1; c < cols_l; c++) {
 			rows_l = ga[c].length;
-			for (var r = 1; r &lt;= rows_l; r++) {
+			for (var r = 1; r <= rows_l; r++) {
 				var can_move_to = this.can_move_to({
 					size_x: size_x,
 					size_y: size_y
@@ -1130,16 +1955,16 @@
 	fn.remove_widget = function (el, silent, callback) {
 		var $el = el instanceof $ ? el : $(el);
 		if ($el.length === 0) {
-			//there is nothing to remove, so we can&#x27;t remove it
+			//there is nothing to remove, so we can't remove it
 			return this;
 		}
 		var wgd = $el.coords().grid;
 		if (wgd === undefined) {
-			//there is no grid, so we can&#x27;t remove it
+			//there is no grid, so we can't remove it
 			return this;
 		}
 
-		// if silent is a function assume it&#x27;s a callback
+		// if silent is a function assume it's a callback
 		if ($.isFunction(silent)) {
 			callback = silent;
 			silent = false;
@@ -1203,7 +2028,7 @@
 		var result = [];
 		$widgets.each($.proxy(function (i, widget) {
 			var $w = $(widget);
-			if (typeof($w.coords().grid) !== &#x27;undefined&#x27;) {
+			if (typeof($w.coords().grid) !== 'undefined') {
 				result.push(this.options.serialize_params($w, $w.coords().grid));
 			}
 		}, this));
@@ -1224,22 +2049,22 @@
 
 
 	/**
-	 * Convert widgets from DOM elements to &quot;widget grid data&quot; Objects.
+	 * Convert widgets from DOM elements to "widget grid data" Objects.
 	 *
 	 * @method dom_to_coords
 	 * @param {HTMLElement} $widget The widget to be converted.
 	 */
 	fn.dom_to_coords = function ($widget) {
 		return {
-			&#x27;col&#x27;: parseInt($widget.attr(&#x27;data-col&#x27;), 10),
-			&#x27;row&#x27;: parseInt($widget.attr(&#x27;data-row&#x27;), 10),
-			&#x27;size_x&#x27;: parseInt($widget.attr(&#x27;data-sizex&#x27;), 10) || 1,
-			&#x27;size_y&#x27;: parseInt($widget.attr(&#x27;data-sizey&#x27;), 10) || 1,
-			&#x27;max_size_x&#x27;: parseInt($widget.attr(&#x27;data-max-sizex&#x27;), 10) || false,
-			&#x27;max_size_y&#x27;: parseInt($widget.attr(&#x27;data-max-sizey&#x27;), 10) || false,
-			&#x27;min_size_x&#x27;: parseInt($widget.attr(&#x27;data-min-sizex&#x27;), 10) || false,
-			&#x27;min_size_y&#x27;: parseInt($widget.attr(&#x27;data-min-sizey&#x27;), 10) || false,
-			&#x27;el&#x27;: $widget
+			'col': parseInt($widget.attr('data-col'), 10),
+			'row': parseInt($widget.attr('data-row'), 10),
+			'size_x': parseInt($widget.attr('data-sizex'), 10) || 1,
+			'size_y': parseInt($widget.attr('data-sizey'), 10) || 1,
+			'max_size_x': parseInt($widget.attr('data-max-sizex'), 10) || false,
+			'max_size_y': parseInt($widget.attr('data-max-sizey'), 10) || false,
+			'min_size_x': parseInt($widget.attr('data-min-sizex'), 10) || false,
+			'min_size_y': parseInt($widget.attr('data-min-sizey'), 10) || false,
+			'el': $widget
 		};
 	};
 
@@ -1249,7 +2074,7 @@
 	 *
 	 * @method register_widget
 	 * @param {HTMLElement|Object} $el jQuery wrapped HTMLElement representing
-	 *  the widget, or an &quot;widget grid data&quot; Object with (col, row, el ...).
+	 *  the widget, or an "widget grid data" Object with (col, row, el ...).
 	 * @return {Boolean} Returns true if the widget final position is different
 	 *  than the original.
 	 */
@@ -1260,35 +2085,35 @@
 		isDOM || ($el = wgd.el);
 
 		var empty_upper_row = this.can_go_widget_up(wgd);
-		if (this.options.shift_widgets_up &amp;&amp; empty_upper_row) {
+		if (this.options.shift_widgets_up && empty_upper_row) {
 			wgd.row = empty_upper_row;
-			$el.attr(&#x27;data-row&#x27;, empty_upper_row);
-			this.$el.trigger(&#x27;gridster:positionchanged&#x27;, [wgd]);
+			$el.attr('data-row', empty_upper_row);
+			this.$el.trigger('gridster:positionchanged', [wgd]);
 			posChanged = true;
 		}
 
-		if (this.options.avoid_overlapped_widgets &amp;&amp; !this.can_move_to(
+		if (this.options.avoid_overlapped_widgets && !this.can_move_to(
 						{size_x: wgd.size_x, size_y: wgd.size_y}, wgd.col, wgd.row)
 		) {
 			$.extend(wgd, this.next_position(wgd.size_x, wgd.size_y));
 			$el.attr({
-				&#x27;data-col&#x27;: wgd.col,
-				&#x27;data-row&#x27;: wgd.row,
-				&#x27;data-sizex&#x27;: wgd.size_x,
-				&#x27;data-sizey&#x27;: wgd.size_y
+				'data-col': wgd.col,
+				'data-row': wgd.row,
+				'data-sizex': wgd.size_x,
+				'data-sizey': wgd.size_y
 			});
 			posChanged = true;
 		}
 
 		// attach Coord object to player data-coord attribute
-		$el.data(&#x27;coords&#x27;, $el.coords());
+		$el.data('coords', $el.coords());
 		// Extend Coord object with grid position info
-		$el.data(&#x27;coords&#x27;).grid = wgd;
+		$el.data('coords').grid = wgd;
 
 		this.add_to_gridmap(wgd, $el);
 		this.update_widget_dimensions($el, wgd);
 
-		this.options.resize.enabled &amp;&amp; this.add_resize_handle($el);
+		this.options.resize.enabled && this.add_resize_handle($el);
 
 		return posChanged;
 	};
@@ -1296,11 +2121,11 @@
 
 	/**
 	 * Update in the mapped array of positions the value of cells represented by
-	 * the grid coords object passed in the &#x60;grid_data&#x60; param.
+	 * the grid coords object passed in the `grid_data` param.
 	 *
 	 * @param {Object} grid_data The grid coords object representing the cells
 	 *  to update in the mapped array.
-	 * @param {HTMLElement|Boolean} value Pass &#x60;false&#x60; or the jQuery wrapped
+	 * @param {HTMLElement|Boolean} value Pass `false` or the jQuery wrapped
 	 *  HTMLElement, depends if you want to delete an existing position or add
 	 *  a new one.
 	 * @method update_widget_position
@@ -1333,16 +2158,16 @@
 		var height = (wgd.size_y * this.options.widget_base_dimensions[1] +
 		((wgd.size_y - 1) * this.options.widget_margins[1]));
 
-		$widget.data(&#x27;coords&#x27;).update({
+		$widget.data('coords').update({
 			width: width,
 			height: height
 		});
 
 		$widget.attr({
-			&#x27;data-col&#x27;: wgd.col,
-			&#x27;data-row&#x27;: wgd.row,
-			&#x27;data-sizex&#x27;: wgd.size_x,
-			&#x27;data-sizey&#x27;: wgd.size_y
+			'data-col': wgd.col,
+			'data-row': wgd.row,
+			'data-sizex': wgd.size_x,
+			'data-sizey': wgd.size_y
 		});
 
 		return this;
@@ -1358,7 +2183,7 @@
 	fn.update_widgets_dimensions = function () {
 		$.each(this.$widgets, $.proxy(function (idx, widget) {
 			var wgd = $(widget).coords().grid;
-			if (typeof (wgd) !== &#x27;object&#x27;) {
+			if (typeof (wgd) !== 'object') {
 				return;
 			}
 			this.update_widget_dimensions($(widget), wgd);
@@ -1411,8 +2236,8 @@
 			container_height: (this.rows * this.min_widget_height) + ((this.rows + 1) * this.options.widget_margins[0]),
 			limit: { width: this.options.limit.width, height: this.options.limit.height },
 			start: function (event, ui) {
-				self.$widgets.filter(&#x27;.player-revert&#x27;)
-						.removeClass(&#x27;player-revert&#x27;);
+				self.$widgets.filter('.player-revert')
+						.removeClass('player-revert');
 
 				self.$player = $(this);
 				self.$helper = $(ui.$helper);
@@ -1420,20 +2245,20 @@
 				self.helper = !self.$helper.is(self.$player);
 
 				self.on_start_drag.call(self, event, ui);
-				self.$el.trigger(&#x27;gridster:dragstart&#x27;);
+				self.$el.trigger('gridster:dragstart');
 			},
 			stop: function (event, ui) {
 				self.on_stop_drag.call(self, event, ui);
-				self.$el.trigger(&#x27;gridster:dragstop&#x27;);
+				self.$el.trigger('gridster:dragstop');
 			},
 			drag: throttle(function (event, ui) {
 				self.on_drag.call(self, event, ui);
-				self.$el.trigger(&#x27;gridster:drag&#x27;);
+				self.$el.trigger('gridster:drag');
 			}, 60)
 		});
 
 		//this.drag_api = this.$el.gridDraggable(draggable_options);
-		this.drag_api = this.$el.dragg(draggable_options).data(&#x27;drag&#x27;);
+		this.drag_api = this.$el.dragg(draggable_options).data('drag');
 	};
 
 
@@ -1445,7 +2270,7 @@
 	 */
 	fn.resizable = function () {
 		this.resize_api = this.$el.gridDraggable({
-			items: &#x27;.&#x27; + this.options.resize.handle_class,
+			items: '.' + this.options.resize.handle_class,
 			offset_left: this.options.widget_margins[0],
 			container_width: this.container_width,
 			move_element: false,
@@ -1474,16 +2299,16 @@
 	fn.setup_resize = function () {
 		this.resize_handle_class = this.options.resize.handle_class;
 		var axes = this.options.resize.axes;
-		var handle_tpl = &#x27;&lt;span class=&quot;&#x27; + this.resize_handle_class + &#x27; &#x27; +
-				this.resize_handle_class + &#x27;-{type}&quot; /&gt;&#x27;;
+		var handle_tpl = '<span class="' + this.resize_handle_class + ' ' +
+				this.resize_handle_class + '-{type}" />';
 
 		this.resize_handle_tpl = $.map(axes, function (type) {
-			return handle_tpl.replace(&#x27;{type}&#x27;, type);
-		}).join(&#x27;&#x27;);
+			return handle_tpl.replace('{type}', type);
+		}).join('');
 
 		if ($.isArray(this.options.draggable.ignore_dragging)) {
 			this.options.draggable.ignore_dragging.push(
-					&#x27;.&#x27; + this.resize_handle_class);
+					'.' + this.resize_handle_class);
 		}
 
 
@@ -1499,16 +2324,16 @@
 	 * @param {Object} ui A prepared ui object with useful drag-related data
 	 */
 	fn.on_start_drag = function (event, ui) {
-		this.$helper.add(this.$player).add(this.$wrapper).addClass(&#x27;dragging&#x27;);
+		this.$helper.add(this.$player).add(this.$wrapper).addClass('dragging');
 
 		this.highest_col = this.get_highest_occupied_cell().col;
 
-		this.$player.addClass(&#x27;player&#x27;);
+		this.$player.addClass('player');
 		this.player_grid_data = this.$player.coords().grid;
 		this.placeholder_grid_data = $.extend({}, this.player_grid_data);
 
 		var highestRow = this.get_highest_occupied_cell().row;
-	    if ((highestRow + this.player_grid_data.size_y) &lt;= this.options.max_rows)
+	    if ((highestRow + this.player_grid_data.size_y) <= this.options.max_rows)
 	    {
 	        this.set_dom_grid_height(this.$el.height() + (this.player_grid_data.size_y * this.min_widget_height));
 	    }
@@ -1517,12 +2342,12 @@
 		var pgd_sizex = this.player_grid_data.size_x;
 		var cols_diff = this.cols - this.highest_col;
 
-		if (this.options.max_cols === Infinity &amp;&amp; cols_diff &lt;= pgd_sizex) {
+		if (this.options.max_cols === Infinity && cols_diff <= pgd_sizex) {
 			this.add_faux_cols(Math.min(pgd_sizex - cols_diff, 1));
 		}
 
 		var colliders = this.faux_grid;
-		var coords = this.$player.data(&#x27;coords&#x27;).coords;
+		var coords = this.$player.data('coords').coords;
 
 		this.cells_occupied_by_player = this.get_cells_occupied(this.player_grid_data);
 		this.cells_occupied_by_placeholder = this.get_cells_occupied(this.placeholder_grid_data);
@@ -1533,10 +2358,10 @@
 		// see jquery.collision.js
 		this.collision_api = this.$helper.collision(colliders, this.options.collision);
 
-		this.$preview_holder = $(&#x27;&lt;&#x27; + this.$player.get(0).tagName + &#x27; /&gt;&#x27;, {
-			&#x27;class&#x27;: &#x27;preview-holder&#x27;,
-			&#x27;data-row&#x27;: this.$player.attr(&#x27;data-row&#x27;),
-			&#x27;data-col&#x27;: this.$player.attr(&#x27;data-col&#x27;),
+		this.$preview_holder = $('<' + this.$player.get(0).tagName + ' />', {
+			'class': 'preview-holder',
+			'data-row': this.$player.attr('data-row'),
+			'data-col': this.$player.attr('data-col'),
 			css: {
 				width: coords.width,
 				height: coords.height
@@ -1564,8 +2389,8 @@
 
 		var margin_sides = this.options.widget_margins;
 
-		var placeholder_column = this.$preview_holder.attr(&#x27;data-col&#x27;);
-		var placeholder_row = this.$preview_holder.attr(&#x27;data-row&#x27;);
+		var placeholder_column = this.$preview_holder.attr('data-col');
+		var placeholder_row = this.$preview_holder.attr('data-row');
 
 		var abs_offset = {
 			left: ui.position.left + this.baseX - (margin_sides[0] * placeholder_column),
@@ -1577,8 +2402,8 @@
 			var prcol = this.placeholder_grid_data.col +
 					this.placeholder_grid_data.size_x - 1;
 
-			// &quot;- 1&quot; due to adding at least 1 column in on_start_drag
-			if (prcol &gt;= this.cols - 1 &amp;&amp; this.options.max_cols &gt;= this.cols + 1) {
+			// "- 1" due to adding at least 1 column in on_start_drag
+			if (prcol >= this.cols - 1 && this.options.max_cols >= this.cols + 1) {
 				this.add_faux_cols(1);
 				this.set_dom_grid_width(this.cols + 1);
 				this.drag_api.set_limits((this.cols * this.min_widget_width) + ((this.cols + 1) * this.options.widget_margins[0]));
@@ -1593,10 +2418,10 @@
 
 		this.on_overlapped_row_change(this.on_start_overlapping_row, this.on_stop_overlapping_row);
 
-		if (this.helper &amp;&amp; this.$player) {
+		if (this.helper && this.$player) {
 			this.$player.css({
-				&#x27;left&#x27;: ui.position.left,
-				&#x27;top&#x27;: ui.position.top
+				'left': ui.position.left,
+				'top': ui.position.top
 			});
 		}
 
@@ -1615,12 +2440,12 @@
 	 */
 	fn.on_stop_drag = function (event, ui) {
 		this.$helper.add(this.$player).add(this.$wrapper)
-				.removeClass(&#x27;dragging&#x27;);
+				.removeClass('dragging');
 
 		var margin_sides = this.options.widget_margins;
 
-		var placeholder_column = this.$preview_holder.attr(&#x27;data-col&#x27;);
-		var placeholder_row = this.$preview_holder.attr(&#x27;data-row&#x27;);
+		var placeholder_column = this.$preview_holder.attr('data-col');
+		var placeholder_row = this.$preview_holder.attr('data-row');
 
 		ui.position.left = ui.position.left + this.baseX - (margin_sides[0] * placeholder_column);
 		ui.position.top = ui.position.top + this.baseY - (margin_sides[1] * placeholder_row);
@@ -1651,7 +2476,7 @@
                         // get number of cells to move
                         var destinyRow = this.placeholder_grid_data.row + this.placeholder_grid_data.size_y;
 
-		                var currentOverlappedRow = parseInt(this.gridmap[tcol][trow][0].getAttribute(&#x27;data-row&#x27;));
+		                var currentOverlappedRow = parseInt(this.gridmap[tcol][trow][0].getAttribute('data-row'));
 		                var cellsToMove = destinyRow - currentOverlappedRow;
 		                var failed = !this.move_widget_down(this.is_widget(tcol, trow), cellsToMove);
 		                if (failed) {
@@ -1671,13 +2496,13 @@
 		this.$player.coords().grid.row = row;
 		this.$player.coords().grid.col = col;
 
-		this.$player.addClass(&#x27;player-revert&#x27;).removeClass(&#x27;player&#x27;)
+		this.$player.addClass('player-revert').removeClass('player')
 				.attr({
-					&#x27;data-col&#x27;: col,
-					&#x27;data-row&#x27;: row
+					'data-col': col,
+					'data-row': row
 				}).css({
-					&#x27;left&#x27;: &#x27;&#x27;,
-					&#x27;top&#x27;: &#x27;&#x27;
+					'left': '',
+					'top': ''
 				});
 				
 		if (this.options.draggable.stop) {
@@ -1711,7 +2536,7 @@
 	 * @param {Object} ui A prepared ui object with useful drag-related data
 	 */
 	fn.on_start_resize = function (event, ui) {
-		this.$resized_widget = ui.$player.closest(&#x27;.gs-w&#x27;);
+		this.$resized_widget = ui.$player.closest('.gs-w');
 		this.resize_coords = this.$resized_widget.coords();
 		this.resize_wgd = this.resize_coords.grid;
 		this.resize_initial_width = this.resize_coords.coords.width;
@@ -1734,35 +2559,35 @@
 		this.set_dom_grid_width(this.cols);
 
 		this.resize_dir = {
-			right: ui.$player.is(&#x27;.&#x27; + this.resize_handle_class + &#x27;-x&#x27;),
-			bottom: ui.$player.is(&#x27;.&#x27; + this.resize_handle_class + &#x27;-y&#x27;)
+			right: ui.$player.is('.' + this.resize_handle_class + '-x'),
+			bottom: ui.$player.is('.' + this.resize_handle_class + '-y')
 		};
 
 		if (!this.is_responsive()) {
 			this.$resized_widget.css({
-				&#x27;min-width&#x27;: this.options.widget_base_dimensions[0],
-				&#x27;min-height&#x27;: this.options.widget_base_dimensions[1]
+				'min-width': this.options.widget_base_dimensions[0],
+				'min-height': this.options.widget_base_dimensions[1]
 			});
 		}
 
 		var nodeName = this.$resized_widget.get(0).tagName;
-		this.$resize_preview_holder = $(&#x27;&lt;&#x27; + nodeName + &#x27; /&gt;&#x27;, {
-			&#x27;class&#x27;: &#x27;preview-holder resize-preview-holder&#x27;,
-			&#x27;data-row&#x27;: this.$resized_widget.attr(&#x27;data-row&#x27;),
-			&#x27;data-col&#x27;: this.$resized_widget.attr(&#x27;data-col&#x27;),
-			&#x27;css&#x27;: {
-				&#x27;width&#x27;: this.resize_initial_width,
-				&#x27;height&#x27;: this.resize_initial_height
+		this.$resize_preview_holder = $('<' + nodeName + ' />', {
+			'class': 'preview-holder resize-preview-holder',
+			'data-row': this.$resized_widget.attr('data-row'),
+			'data-col': this.$resized_widget.attr('data-col'),
+			'css': {
+				'width': this.resize_initial_width,
+				'height': this.resize_initial_height
 			}
 		}).appendTo(this.$el);
 
-		this.$resized_widget.addClass(&#x27;resizing&#x27;);
+		this.$resized_widget.addClass('resizing');
 
 		if (this.options.resize.start) {
 			this.options.resize.start.call(this, event, ui, this.$resized_widget);
 		}
 
-		this.$el.trigger(&#x27;gridster:resizestart&#x27;);
+		this.$el.trigger('gridster:resizestart');
 	};
 
 
@@ -1775,27 +2600,27 @@
 	 */
 	fn.on_stop_resize = function (event, ui) {
 		this.$resized_widget
-				.removeClass(&#x27;resizing&#x27;)
+				.removeClass('resizing')
 				.css({
-					&#x27;width&#x27;: &#x27;&#x27;,
-					&#x27;height&#x27;: &#x27;&#x27;,
-					&#x27;min-width&#x27;: &#x27;&#x27;,
-					&#x27;min-height&#x27;: &#x27;&#x27;
+					'width': '',
+					'height': '',
+					'min-width': '',
+					'min-height': ''
 				});
 
 		delay($.proxy(function () {
 			this.$resize_preview_holder
 					.remove()
 					.css({
-						&#x27;min-width&#x27;: &#x27;&#x27;,
-						&#x27;min-height&#x27;: &#x27;&#x27;
+						'min-width': '',
+						'min-height': ''
 					});
 
 			if (this.options.resize.stop) {
 				this.options.resize.stop.call(this, event, ui, this.$resized_widget);
 			}
 
-			this.$el.trigger(&#x27;gridster:resizestop&#x27;);
+			this.$el.trigger('gridster:resizestop');
 		}, this), 300);
 
 		this.set_dom_grid_width();
@@ -1857,19 +2682,19 @@
 
 		if (autogrow) {
 			var last_widget_col = this.resize_initial_col + size_x - 1;
-			if (autogrow &amp;&amp; this.resize_initial_last_col &lt;= last_widget_col) {
+			if (autogrow && this.resize_initial_last_col <= last_widget_col) {
 				this.set_dom_grid_width(Math.max(last_widget_col + 1, this.cols));
 
-				if (this.cols &lt; last_widget_col) {
+				if (this.cols < last_widget_col) {
 					this.add_faux_cols(last_widget_col - this.cols);
 				}
 			}
 		}
 
 		var css_props = {};
-		!this.resize_dir.bottom &amp;&amp; (css_props.width = Math.max(Math.min(
+		!this.resize_dir.bottom && (css_props.width = Math.max(Math.min(
 				this.resize_initial_width + rel_x, max_width), min_width));
-		!this.resize_dir.right &amp;&amp; (css_props.height = Math.max(Math.min(
+		!this.resize_dir.right && (css_props.height = Math.max(Math.min(
 				this.resize_initial_height + rel_y, max_height), min_height));
 
 		this.$resized_widget.css(css_props);
@@ -1881,12 +2706,12 @@
 			this.set_dom_grid_width(this.cols);
 
 			this.$resize_preview_holder.css({
-				&#x27;width&#x27;: &#x27;&#x27;,
-				&#x27;height&#x27;: &#x27;&#x27;
+				'width': '',
+				'height': ''
 			}).attr({
-				&#x27;data-row&#x27;: this.$resized_widget.attr(&#x27;data-row&#x27;),
-				&#x27;data-sizex&#x27;: size_x,
-				&#x27;data-sizey&#x27;: size_y
+				'data-row': this.$resized_widget.attr('data-row'),
+				'data-sizex': size_x,
+				'data-sizey': size_y
 			});
 		}
 
@@ -1894,7 +2719,7 @@
 			this.options.resize.resize.call(this, event, ui, this.$resized_widget);
 		}
 
-		this.$el.trigger(&#x27;gridster:resize&#x27;);
+		this.$el.trigger('gridster:resize');
 
 		this.resize_last_sizex = size_x;
 		this.resize_last_sizey = size_y;
@@ -1923,13 +2748,13 @@
 		var n_cols = cols.length;
 		var i;
 
-		for (i = 0; i &lt; n_cols; i++) {
+		for (i = 0; i < n_cols; i++) {
 			if ($.inArray(cols[i], this.last_cols) === -1) {
 				(start_callback || $.noop).call(this, cols[i]);
 			}
 		}
 
-		for (i = 0; i &lt; last_n_cols; i++) {
+		for (i = 0; i < last_n_cols; i++) {
 			if ($.inArray(this.last_cols[i], cols) === -1) {
 				(stop_callback || $.noop).call(this, this.last_cols[i]);
 			}
@@ -1961,13 +2786,13 @@
 		var n_rows = rows.length;
 		var i;
 
-		for (i = 0; i &lt; n_rows; i++) {
+		for (i = 0; i < n_rows; i++) {
 			if ($.inArray(rows[i], this.last_rows) === -1) {
 				(start_callback || $.noop).call(this, rows[i]);
 			}
 		}
 
-		for (i = 0; i &lt; last_n_rows; i++) {
+		for (i = 0; i < last_n_rows; i++) {
 			if ($.inArray(this.last_rows[i], rows) === -1) {
 				(end_callback || $.noop).call(this, this.last_rows[i]);
 			}
@@ -2025,8 +2850,8 @@
 				//next iteration
 				return true;
 			}
-			if ($gr.options.collision.wait_for_mouseup &amp;&amp; $gr.drag_api.is_dragging){
-				//skip the swap and just &#x27;move&#x27; the place holder
+			if ($gr.options.collision.wait_for_mouseup && $gr.drag_api.is_dragging){
+				//skip the swap and just 'move' the place holder
 				$gr.placeholder_grid_data.col = to_col;
 				$gr.placeholder_grid_data.row = to_row;
 
@@ -2034,16 +2859,16 @@
 						$gr.placeholder_grid_data);
 
 				$gr.$preview_holder.attr({
-					&#x27;data-row&#x27;: to_row,
-					&#x27;data-col&#x27;: to_col
+					'data-row': to_row,
+					'data-col': to_col
 				});
-			} else if (wgd.size_x &lt;= player_size_x &amp;&amp; wgd.size_y &lt;= player_size_y) {
-				if (!$gr.is_swap_occupied(placeholder_cells.cols[0], wgd.row, wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(placeholder_cells.cols[0], wgd.row) &amp;&amp; !$gr.is_in_queue(placeholder_cells.cols[0], wgd.row, $w)) {
+			} else if (wgd.size_x <= player_size_x && wgd.size_y <= player_size_y) {
+				if (!$gr.is_swap_occupied(placeholder_cells.cols[0], wgd.row, wgd.size_x, wgd.size_y) && !$gr.is_player_in(placeholder_cells.cols[0], wgd.row) && !$gr.is_in_queue(placeholder_cells.cols[0], wgd.row, $w)) {
 					if($gr.options.move_widgets_down_only){
 						$overlapped_widgets.each($.proxy(function (i, w) {
 							var $w = $(w);
 
-							if ($gr.can_go_down($w) &amp;&amp; $w.coords().grid.row === $gr.player_grid_data.row &amp;&amp; !$gr.is_in_queue($w.coords().grid.col, wgd.row, $w)) {
+							if ($gr.can_go_down($w) && $w.coords().grid.row === $gr.player_grid_data.row && !$gr.is_in_queue($w.coords().grid.col, wgd.row, $w)) {
 								$gr.move_widget_down($w, $gr.player_grid_data.size_y);
 								$gr.set_placeholder(to_col, to_row);
 							}
@@ -2053,21 +2878,21 @@
 						swap = $gr.queue_widget(placeholder_cells.cols[0], wgd.row, $w);
 					}
 				}
-				else if (!$gr.is_swap_occupied(outside_col, wgd.row, wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(outside_col, wgd.row) &amp;&amp; !$gr.is_in_queue(outside_col, wgd.row, $w)) {
+				else if (!$gr.is_swap_occupied(outside_col, wgd.row, wgd.size_x, wgd.size_y) && !$gr.is_player_in(outside_col, wgd.row) && !$gr.is_in_queue(outside_col, wgd.row, $w)) {
 					swap = $gr.queue_widget(outside_col, wgd.row, $w);
 				}
-				else if (!$gr.is_swap_occupied(wgd.col, placeholder_cells.rows[0], wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(wgd.col, placeholder_cells.rows[0]) &amp;&amp; !$gr.is_in_queue(wgd.col, placeholder_cells.rows[0], $w)) {
+				else if (!$gr.is_swap_occupied(wgd.col, placeholder_cells.rows[0], wgd.size_x, wgd.size_y) && !$gr.is_player_in(wgd.col, placeholder_cells.rows[0]) && !$gr.is_in_queue(wgd.col, placeholder_cells.rows[0], $w)) {
 					swap = $gr.queue_widget(wgd.col, placeholder_cells.rows[0], $w);
 				}
-				else if (!$gr.is_swap_occupied(wgd.col, outside_row, wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(wgd.col, outside_row) &amp;&amp; !$gr.is_in_queue(wgd.col, outside_row, $w)) {
+				else if (!$gr.is_swap_occupied(wgd.col, outside_row, wgd.size_x, wgd.size_y) && !$gr.is_player_in(wgd.col, outside_row) && !$gr.is_in_queue(wgd.col, outside_row, $w)) {
 					swap = $gr.queue_widget(wgd.col, outside_row, $w);
 				}
-				else if (!$gr.is_swap_occupied(placeholder_cells.cols[0], placeholder_cells.rows[0], wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(placeholder_cells.cols[0], placeholder_cells.rows[0]) &amp;&amp; !$gr.is_in_queue(placeholder_cells.cols[0], placeholder_cells.rows[0], $w)) {
+				else if (!$gr.is_swap_occupied(placeholder_cells.cols[0], placeholder_cells.rows[0], wgd.size_x, wgd.size_y) && !$gr.is_player_in(placeholder_cells.cols[0], placeholder_cells.rows[0]) && !$gr.is_in_queue(placeholder_cells.cols[0], placeholder_cells.rows[0], $w)) {
 					if($gr.options.move_widgets_down_only){
 						$overlapped_widgets.each($.proxy(function (i, w) {
 							var $w = $(w);
 
-							if ($gr.can_go_down($w) &amp;&amp; $w.coords().grid.row === $gr.player_grid_data.row &amp;&amp; !$gr.is_in_queue(outside_col, wgd.row, $w)) {
+							if ($gr.can_go_down($w) && $w.coords().grid.row === $gr.player_grid_data.row && !$gr.is_in_queue(outside_col, wgd.row, $w)) {
 								$gr.move_widget_down($w, $gr.player_grid_data.size_y);
 								$gr.set_placeholder(to_col, to_row);
 							}
@@ -2078,11 +2903,11 @@
 					}
 				} else {
 					//in one last attempt we check for any other empty spaces
-					for (var c = 0; c &lt; player_size_x; c++) {
-						for (var r = 0; r &lt; player_size_y; r++) {
+					for (var c = 0; c < player_size_x; c++) {
+						for (var r = 0; r < player_size_y; r++) {
 							var colc = placeholder_cells.cols[0] + c;
 							var rowc = placeholder_cells.rows[0] + r;
-							if (!$gr.is_swap_occupied(colc, rowc, wgd.size_x, wgd.size_y) &amp;&amp; !$gr.is_player_in(colc, rowc) &amp;&amp; !$gr.is_in_queue(colc, rowc, $w)) {
+							if (!$gr.is_swap_occupied(colc, rowc, wgd.size_x, wgd.size_y) && !$gr.is_player_in(colc, rowc) && !$gr.is_in_queue(colc, rowc, $w)) {
 								swap = $gr.queue_widget(colc, rowc, $w);
 								c = player_size_x;
 								break;
@@ -2091,11 +2916,11 @@
 					}
 
 				}
-			} else if ($gr.options.shift_larger_widgets_down &amp;&amp; !swap) {
+			} else if ($gr.options.shift_larger_widgets_down && !swap) {
 				$overlapped_widgets.each($.proxy(function (i, w) {
 					var $w = $(w);
 
-					if ($gr.can_go_down($w) &amp;&amp; $w.coords().grid.row === $gr.player_grid_data.row) {
+					if ($gr.can_go_down($w) && $w.coords().grid.row === $gr.player_grid_data.row) {
 						$gr.move_widget_down($w, $gr.player_grid_data.size_y);
 						$gr.set_placeholder(to_col, to_row);
 					}
@@ -2106,11 +2931,11 @@
 		}));
 
 		//Move queued widgets
-		if (swap &amp;&amp; this.can_placeholder_be_set(to_col, to_row, player_size_x, player_size_y)) {
+		if (swap && this.can_placeholder_be_set(to_col, to_row, player_size_x, player_size_y)) {
 			for (var key in this.w_queue) {
-				var _col = parseInt(key.split(&#x27;_&#x27;)[0]);
-				var _row = parseInt(key.split(&#x27;_&#x27;)[1]);
-				if (this.w_queue[key] !== &#x27;full&#x27;) {
+				var _col = parseInt(key.split('_')[0]);
+				var _row = parseInt(key.split('_')[1]);
+				if (this.w_queue[key] !== 'full') {
 					this.new_move_widget_to(this.w_queue[key], _col, _row);
 				}
 			}
@@ -2142,15 +2967,15 @@
 
 	fn.is_swap_occupied = function (col, row, w_size_x, w_size_y) {
 		var occupied = false;
-		for (var c = 0; c &lt; w_size_x; c++) {
-			for (var r = 0; r &lt; w_size_y; r++) {
+		for (var c = 0; c < w_size_x; c++) {
+			for (var r = 0; r < w_size_y; r++) {
 				var colc = col + c;
 				var rowc = row + r;
-				var key = colc + &#x27;_&#x27; + rowc;
+				var key = colc + '_' + rowc;
 				if (this.is_occupied(colc, rowc)) {
 					occupied = true;
 				} else if (key in this.w_queue) {
-					if (this.w_queue[key] === &#x27;full&#x27;) {
+					if (this.w_queue[key] === 'full') {
 						occupied = true;
 						continue;
 					}
@@ -2161,10 +2986,10 @@
 						delete this.w_queue[key];
 					}
 				}
-				if (rowc &gt; parseInt(this.options.max_rows)) {
+				if (rowc > parseInt(this.options.max_rows)) {
 					occupied = true;
 				}
-				if (colc &gt; parseInt(this.options.max_cols)) {
+				if (colc > parseInt(this.options.max_cols)) {
 					occupied = true;
 				}
 				if (this.is_player_in(colc, rowc)) {
@@ -2178,19 +3003,19 @@
 
 	fn.can_placeholder_be_set = function (col, row, player_size_x, player_size_y) {
 		var can_set = true;
-		for (var c = 0; c &lt; player_size_x; c++) {
-			for (var r = 0; r &lt; player_size_y; r++) {
+		for (var c = 0; c < player_size_x; c++) {
+			for (var r = 0; r < player_size_y; r++) {
 				var colc = col + c;
 				var rowc = row + r;
 				var $tw = this.is_widget(colc, rowc);
 				//if this space is occupied and not queued for move.
-				if (rowc &gt; parseInt(this.options.max_rows)) {
+				if (rowc > parseInt(this.options.max_rows)) {
 					can_set = false;
 				}
-				if (colc &gt; parseInt(this.options.max_cols)) {
+				if (colc > parseInt(this.options.max_cols)) {
 					can_set = false;
 				}
-				if (this.is_occupied(colc, rowc) &amp;&amp; !this.is_widget_queued_and_can_move($tw)) {
+				if (this.is_occupied(colc, rowc) && !this.is_widget_queued_and_can_move($tw)) {
 					can_set = false;
 				}
 			}
@@ -2201,22 +3026,22 @@
 	fn.queue_widget = function (col, row, $widget) {
 		var $w = $widget;
 		var wgd = $w.coords().grid;
-		var primary_key = col + &#x27;_&#x27; + row;
+		var primary_key = col + '_' + row;
 		if (primary_key in this.w_queue) {
 			return false;
 		}
 
 		this.w_queue[primary_key] = $w;
 
-		for (var c = 0; c &lt; wgd.size_x; c++) {
-			for (var r = 0; r &lt; wgd.size_y; r++) {
+		for (var c = 0; c < wgd.size_x; c++) {
+			for (var r = 0; r < wgd.size_y; r++) {
 				var colc = col + c;
 				var rowc = row + r;
-				var key = colc + &#x27;_&#x27; + rowc;
+				var key = colc + '_' + rowc;
 				if (key === primary_key) {
 					continue;
 				}
-				this.w_queue[key] = &#x27;full&#x27;;
+				this.w_queue[key] = 'full';
 			}
 		}
 
@@ -2230,19 +3055,19 @@
 		}
 
 		for (var key in this.w_queue) {
-			if (this.w_queue[key] === &#x27;full&#x27;) {
+			if (this.w_queue[key] === 'full') {
 				continue;
 			}
-			if (this.w_queue[key].attr(&#x27;data-col&#x27;) === $widget.attr(&#x27;data-col&#x27;) &amp;&amp; this.w_queue[key].attr(&#x27;data-row&#x27;) === $widget.attr(&#x27;data-row&#x27;)) {
+			if (this.w_queue[key].attr('data-col') === $widget.attr('data-col') && this.w_queue[key].attr('data-row') === $widget.attr('data-row')) {
 				queued = true;
 				//test whole space
 				var $w = this.w_queue[key];
-				var dcol = parseInt(key.split(&#x27;_&#x27;)[0]);
-				var drow = parseInt(key.split(&#x27;_&#x27;)[1]);
+				var dcol = parseInt(key.split('_')[0]);
+				var drow = parseInt(key.split('_')[1]);
 				var wgd = $w.coords().grid;
 
-				for (var c = 0; c &lt; wgd.size_x; c++) {
-					for (var r = 0; r &lt; wgd.size_y; r++) {
+				for (var c = 0; c < wgd.size_x; c++) {
+					for (var r = 0; r < wgd.size_y; r++) {
 						var colc = dcol + c;
 						var rowc = drow + r;
 						if (this.is_player_in(colc, rowc)) {
@@ -2260,10 +3085,10 @@
 
 	fn.is_in_queue = function (col, row, $widget) {
 		var queued = false;
-		var key = col + &#x27;_&#x27; + row;
+		var key = col + '_' + row;
 
 		if ((key in this.w_queue)) {
-			if (this.w_queue[key] === &#x27;full&#x27;) {
+			if (this.w_queue[key] === 'full') {
 				queued = true;
 			} else {
 				var $tw = this.w_queue[key];
@@ -2271,7 +3096,7 @@
 				if (!this.is_widget_under_player(tgd.col, tgd.row)) {
 					delete this.w_queue[key];
 					queued = false;
-				} else if (this.w_queue[key].attr(&#x27;data-col&#x27;) === $widget.attr(&#x27;data-col&#x27;) &amp;&amp; this.w_queue[key].attr(&#x27;data-row&#x27;) === $widget.attr(&#x27;data-row&#x27;)) {
+				} else if (this.w_queue[key].attr('data-col') === $widget.attr('data-col') && this.w_queue[key].attr('data-row') === $widget.attr('data-row')) {
 					delete this.w_queue[key];
 					queued = false;
 				} else {
@@ -2291,8 +3116,8 @@
 	 * @method widgets_contraints
 	 * @param {jQuery} $widgets A jQuery wrapped collection of
 	 * HTMLElements.
-	 * @return {object} Returns a literal Object with two keys: &#x60;can_go_up&#x60; &amp;
-	 * &#x60;can_not_go_up&#x60;. Each contains a set of HTMLElements.
+	 * @return {object} Returns a literal Object with two keys: `can_go_up` &
+	 * `can_not_go_up`. Each contains a set of HTMLElements.
 	 */
 	fn.widgets_constraints = function ($widgets) {
 		var $widgets_can_go_up = $([]);
@@ -2347,18 +3172,18 @@
 				this.set_placeholder(to_col, can_go_widget_up + wgd.size_y);
 
 			} else {
-				//target can&#x27;t go up
+				//target can't go up
 				var can_go_player_up = this.can_go_player_up(
 						this.player_grid_data);
 
 				if (!can_go_player_up) {
-					// target can&#x27;t go up
-					// player cant&#x27;t go up
+					// target can't go up
+					// player cant't go up
 					// so we need to move widget down to a position that dont
 					// overlaps player
 					var y = (to_row + this.player_grid_data.size_y) - wgd.row;
 					if (this.can_go_down($w)) {
-						console.log(&#x27;In Move Down!&#x27;);
+						console.log('In Move Down!');
 						this.move_widget_down($w, y);
 						this.set_placeholder(to_col, to_row);
 					}
@@ -2380,11 +3205,11 @@
 	 * @return {Boolean} Returns true or false.
 	 */
 	fn.is_player = function (col_or_el, row) {
-		if (row &amp;&amp; !this.gridmap[col_or_el]) {
+		if (row && !this.gridmap[col_or_el]) {
 			return false;
 		}
 		var $w = row ? this.gridmap[col_or_el][row] : col_or_el;
-		return $w &amp;&amp; ($w.is(this.$player) || $w.is(this.$helper));
+		return $w && ($w.is(this.$player) || $w.is(this.$helper));
 	};
 
 
@@ -2399,7 +3224,7 @@
 	 */
 	fn.is_player_in = function (col, row) {
 		var c = this.cells_occupied_by_player || {};
-		return $.inArray(col, c.cols) &gt;= 0 &amp;&amp; $.inArray(row, c.rows) &gt;= 0;
+		return $.inArray(col, c.cols) >= 0 && $.inArray(row, c.rows) >= 0;
 	};
 
 
@@ -2413,7 +3238,7 @@
 	 */
 	fn.is_placeholder_in = function (col, row) {
 		var c = this.cells_occupied_by_placeholder || {};
-		return this.is_placeholder_in_col(col) &amp;&amp; $.inArray(row, c.rows) &gt;= 0;
+		return this.is_placeholder_in_col(col) && $.inArray(row, c.rows) >= 0;
 	};
 
 
@@ -2426,7 +3251,7 @@
 	 */
 	fn.is_placeholder_in_col = function (col) {
 		var c = this.cells_occupied_by_placeholder || [];
-		return $.inArray(col, c.cols) &gt;= 0;
+		return $.inArray(col, c.cols) >= 0;
 	};
 
 
@@ -2439,7 +3264,7 @@
 	 * @return {Boolean} Returns true or false.
 	 */
 	fn.is_empty = function (col, row) {
-		if (typeof this.gridmap[col] !== &#x27;undefined&#x27;) {
+		if (typeof this.gridmap[col] !== 'undefined') {
 			if (!this.gridmap[col][row]) {
 				return true;
 			}
@@ -2460,7 +3285,7 @@
 		if (this.options.max_cols === Infinity) {
 			return true;
 		}
-		return this.cols &gt;= this.calculate_highest_col(col, size_x) ;
+		return this.cols >= this.calculate_highest_col(col, size_x) ;
 	};
 
 	/**
@@ -2470,7 +3295,7 @@
 	 * @Return {Boolean} true if the desire row exists in the grid.
 	 */
 	fn.is_valid_row = function (row, size_y){
-		return  this.rows &gt;= this.calculate_highest_row(row, size_y);
+		return  this.rows >= this.calculate_highest_row(row, size_y);
 	};
 
 	/**
@@ -2632,11 +3457,11 @@
 
 		// Prevents widgets go out of the grid
 		var right_col = (col + phgd.size_x - 1);
-		if (right_col &gt; this.cols) {
+		if (right_col > this.cols) {
 			col = col - (right_col - col);
 		}
 
-		var moved_down = this.placeholder_grid_data.row &lt; row;
+		var moved_down = this.placeholder_grid_data.row < row;
 		var changed_column = this.placeholder_grid_data.col !== col;
 
 		this.placeholder_grid_data.col = col;
@@ -2646,8 +3471,8 @@
 				this.placeholder_grid_data);
 
 		this.$preview_holder.attr({
-			&#x27;data-row&#x27;: row,
-			&#x27;data-col&#x27;: col
+			'data-row': row,
+			'data-col': col
 		});
 
 		if (this.options.shift_player_up) {
@@ -2661,7 +3486,7 @@
 				});
 
 				$nexts.each($.proxy(function (i, widget) {
-					//Make sure widget is at it&#x27;s topmost position
+					//Make sure widget is at it's topmost position
 					var $w = $(widget);
 					var wgd = $w.coords().grid;
 
@@ -2681,7 +3506,7 @@
 				$widgets_under_ph.each($.proxy(function (i, widget) {
 					var $w = $(widget);
 					this.move_widget_down(
-							$w, row + phgd.size_y - $w.data(&#x27;coords&#x27;).grid.row);
+							$w, row + phgd.size_y - $w.data('coords').grid.row);
 				}, this));
 			}
 		}
@@ -2712,13 +3537,13 @@
 			var r = p_bottom_row + 1;
 			upper_rows[tcol] = [];
 
-			while (--r &gt; 0) {
+			while (--r > 0) {
 				if (this.is_empty(tcol, r) || this.is_player(tcol, r) ||
-						this.is_widget(tcol, r) &amp;&amp;
+						this.is_widget(tcol, r) &&
 						grid_col[r].is($widgets_under_player)
 				) {
 					upper_rows[tcol].push(r);
-					min_row = r &lt; min_row ? r : min_row;
+					min_row = r < min_row ? r : min_row;
 				} else {
 					break;
 				}
@@ -2765,18 +3590,18 @@
 
 			var r = p_bottom_row + 1;
 			// iterate over each row
-			while (--r &gt; 0) {
-				if (this.is_widget(tcol, r) &amp;&amp; !this.is_player_in(tcol, r)) {
+			while (--r > 0) {
+				if (this.is_widget(tcol, r) && !this.is_player_in(tcol, r)) {
 					if (!grid_col[r].is(widget_grid_data.el)) {
 						break;
 					}
 				}
 
-				if (!this.is_player(tcol, r) &amp;&amp; !this.is_placeholder_in(tcol, r) &amp;&amp; !this.is_player_in(tcol, r)) {
+				if (!this.is_player(tcol, r) && !this.is_placeholder_in(tcol, r) && !this.is_player_in(tcol, r)) {
 					upper_rows[tcol].push(r);
 				}
 
-				if (r &lt; min_row) {
+				if (r < min_row) {
 					min_row = r;
 				}
 			}
@@ -2800,8 +3625,8 @@
 
 
 	/**
-	 * Search a valid row for the widget represented by &#x60;widget_grid_data&#x27; in
-	 * the &#x60;upper_rows&#x60; array. Iteration starts from row specified in &#x60;min_row&#x60;.
+	 * Search a valid row for the widget represented by `widget_grid_data' in
+	 * the `upper_rows` array. Iteration starts from row specified in `min_row`.
 	 *
 	 * @method get_valid_rows
 	 * @param {Object} widget_grid_data The actual grid coords object of the
@@ -2809,7 +3634,7 @@
 	 * @param {Array} upper_rows An array with columns as index and arrays
 	 *  of valid rows as values.
 	 * @param {Number} min_row The upper row from which the iteration will start.
-	 * @return {Number|Boolean} Returns the upper row valid from the &#x60;upper_rows&#x60;
+	 * @return {Number|Boolean} Returns the upper row valid from the `upper_rows`
 	 *  for the widget in question.
 	 */
 	fn.get_valid_rows = function (widget_grid_data, upper_rows, min_row) {
@@ -2819,11 +3644,11 @@
 		var r = min_row - 1;
 		var valid_rows = [];
 
-		while (++r &lt;= p_bottom_row) {
+		while (++r <= p_bottom_row) {
 			var common = true;
 			/*jshint -W083 */
 			$.each(upper_rows, function (col, rows) {
-				if ($.isArray(rows) &amp;&amp; $.inArray(r, rows) === -1) {
+				if ($.isArray(rows) && $.inArray(r, rows) === -1) {
 					common = false;
 				}
 			});
@@ -2858,7 +3683,7 @@
 		var first = true;
 		var prev = -1; // or null?
 
-		for (var i = 0; i &lt; max; i++) {
+		for (var i = 0; i < max; i++) {
 			if (first || arr[i] === prev + 1) {
 				result.push(i);
 				if (result.length === size_y) {
@@ -2873,7 +3698,7 @@
 			prev = arr[i];
 		}
 
-		return result.length &gt;= size_y ? arr[result[0]] : false;
+		return result.length >= size_y ? arr[result[0]] : false;
 	};
 
 
@@ -2896,7 +3721,7 @@
 					return true;
 				} //next iteration
 				var $w = this.gridmap[col][row];
-				if (this.is_occupied(col, row) &amp;&amp; !this.is_player($w) &amp;&amp;
+				if (this.is_occupied(col, row) && !this.is_player($w) &&
 						$.inArray($w, used) === -1
 				) {
 					$widgets = $widgets.add($w);
@@ -2966,7 +3791,7 @@
 		var cols = this.cells_occupied_by_player.cols;
 		if (this.options.shift_larger_widgets_down) {
 			/*jshint -W083 */
-			for (var c = 0, cl = cols.length; c &lt; cl; c++) {
+			for (var c = 0, cl = cols.length; c < cl; c++) {
 				this.for_each_widget_below(cols[c], row, function (tcol, trow) {
 					self.move_widget_up(this, self.player_grid_data.size_y);
 				});
@@ -2984,8 +3809,8 @@
 		widget_grid_data.col = col;
 
 		this.add_to_gridmap(widget_grid_data);
-		$widget.attr(&#x27;data-row&#x27;, row);
-		$widget.attr(&#x27;data-col&#x27;, col);
+		$widget.attr('data-row', row);
+		$widget.attr('data-col', col);
 		this.update_widget_position(widget_grid_data, $widget);
 		this.$changed = this.$changed.add($widget);
 
@@ -3054,7 +3879,7 @@
 		this.remove_from_gridmap(widget_grid_data);
 		widget_grid_data.row = row;
 		this.add_to_gridmap(widget_grid_data);
-		$widget.attr(&#x27;data-row&#x27;, row);
+		$widget.attr('data-row', row);
 		this.$changed = this.$changed.add($widget);
 
 
@@ -3062,7 +3887,7 @@
 			var $w = $(widget);
 			var wgd = $w.coords().grid;
 			var can_go_up = self.can_go_widget_up(wgd);
-			if (can_go_up &amp;&amp; can_go_up !== wgd.row) {
+			if (can_go_up && can_go_up !== wgd.row) {
 				self.move_widget_to($w, can_go_up);
 			}
 		});
@@ -3107,13 +3932,13 @@
 				this.remove_from_gridmap(widget_grid_data);
 				widget_grid_data.row = next_row;
 				this.add_to_gridmap(widget_grid_data);
-				$widget.attr(&#x27;data-row&#x27;, widget_grid_data.row);
+				$widget.attr('data-row', widget_grid_data.row);
 				this.$changed = this.$changed.add($widget);
 
 				moved.push($widget);
 
 				/* $next_widgets.each($.proxy(function(i, widget) {
-				 console.log(&#x27;from_within_move_widget_up&#x27;);
+				 console.log('from_within_move_widget_up');
 				 this.move_widget_up($(widget), y_units);
 				 }, this)); */
 			}
@@ -3134,13 +3959,13 @@
 	fn.move_widget_down = function ($widget, y_units) {
 		var el_grid_data, actual_row, moved, y_diff;
 
-		if (y_units &lt;= 0) {
+		if (y_units <= 0) {
 			return false;
 		}
 
 		el_grid_data = $widget.coords().grid;
 		actual_row = el_grid_data.row;
-		if (actual_row + ($widget.coords().grid.size_y - 1) + y_units &gt; this.options.max_rows)
+		if (actual_row + ($widget.coords().grid.size_y - 1) + y_units > this.options.max_rows)
 		{
 		    return false;
 		}
@@ -3167,7 +3992,7 @@
                     var tmp_y = this.displacement_diff(
                             wd, widget_grid_data, y_diff);
 
-                    if (tmp_y &gt; 0) {
+                    if (tmp_y > 0) {
                         this.failed = this.move_widget_down($w, tmp_y) === false;
                     }
                 }
@@ -3180,7 +4005,7 @@
 
 			widget_grid_data.row = next_row;
 			this.update_widget_position(widget_grid_data, $widget);
-			$widget.attr(&#x27;data-row&#x27;, widget_grid_data.row);
+			$widget.attr('data-row', widget_grid_data.row);
 			this.$changed = this.$changed.add($widget);
 
 			moved.push($widget);
@@ -3214,7 +4039,7 @@
 
 			r = actual_row;
 			while (r--) {
-				if (this.is_empty(tcol, r) &amp;&amp; !this.is_placeholder_in(tcol, r)
+				if (this.is_empty(tcol, r) && !this.is_placeholder_in(tcol, r)
 				) {
 					urc[tcol].push(r);
 				} else {
@@ -3236,11 +4061,11 @@
 		/* get common rows starting from upper position in all the columns
 		 * that widget occupies */
 		r = row;
-		for (r = 1; r &lt; actual_row; r++) {
+		for (r = 1; r < actual_row; r++) {
 			var common = true;
 
-			for (var uc = 0, ucl = urc.length; uc &lt; ucl; uc++) {
-				if (urc[uc] &amp;&amp; $.inArray(r, urc[uc]) === -1) {
+			for (var uc = 0, ucl = urc.length; uc < ucl; uc++) {
+				if (urc[uc] && $.inArray(r, urc[uc]) === -1) {
 					common = false;
 				}
 			}
@@ -3263,7 +4088,7 @@
 		this.for_each_column_occupied(widget_grid_data, function (col) {
 			var temp_y_units = 0;
 
-			for (var r = parent_max_y; r &lt; actual_row; r++) {
+			for (var r = parent_max_y; r < actual_row; r++) {
 				if (this.is_empty(col, r)) {
 					temp_y_units = temp_y_units + 1;
 				}
@@ -3275,7 +4100,7 @@
 		var max_diff = Math.max.apply(Math, diffs);
 		y_units = (y_units - max_diff);
 
-		return y_units &gt; 0 ? y_units : 0;
+		return y_units > 0 ? y_units : 0;
 	};
 
 
@@ -3290,7 +4115,7 @@
 		var $nexts = $([]);
 		var el_grid_data = $.isPlainObject($el) ? $el : $el.coords().grid;
 		if (el_grid_data === undefined) {
-			//there is no grid, so we can&#x27;t calculate the widgets below
+			//there is no grid, so we can't calculate the widgets below
 			return $nexts;
 		}
 		var self = this;
@@ -3298,7 +4123,7 @@
 
 		this.for_each_column_occupied(el_grid_data, function (col) {
 			self.for_each_widget_below(col, next_row, function (tcol, trow) {
-				if (!self.is_player(this) &amp;&amp; $.inArray(this, $nexts) === -1) {
+				if (!self.is_player(this) && $.inArray(this, $nexts) === -1) {
 					$nexts = $nexts.add(this);
 					return true; // break
 				}
@@ -3382,8 +4207,8 @@
 
 
 	/**
-	 * Check if it&#x27;s possible to move a widget to a specific col/row. It takes
-	 * into account the dimensions (&#x60;size_y&#x60; and &#x60;size_x&#x60; attrs. of the grid
+	 * Check if it's possible to move a widget to a specific col/row. It takes
+	 * into account the dimensions (`size_y` and `size_x` attrs. of the grid
 	 *  coords object) the widget occupies.
 	 *
 	 * @method can_move_to
@@ -3406,18 +4231,18 @@
 		//Prevents widgets go out of the grid, check only if the grid is not set to autogrow
 		if (this.options.max_cols !== Infinity) {
 			var right_col = col + widget_grid_data.size_x - 1;
-			if (right_col &gt; this.cols) {
+			if (right_col > this.cols) {
 				return false;
 			}
 		}
 
-		if (this.options.max_rows &lt; row + widget_grid_data.size_y - 1) {
+		if (this.options.max_rows < row + widget_grid_data.size_y - 1) {
 			return false;
 		}
 
 		this.for_each_cell_occupied(future_wd, function (tcol, trow) {
 			var $tw = this.is_widget(tcol, trow);
-			if ($tw &amp;&amp; (!widget_grid_data.el || $tw.is($w))) {
+			if ($tw && (!widget_grid_data.el || $tw.is($w))) {
 				result = false;
 			}
 		});
@@ -3438,7 +4263,7 @@
 		var max = (from_col || this.player_grid_data.col) +
 				(this.player_grid_data.size_x - 1);
 		var cols = [];
-		for (var col = from_col; col &lt;= max; col++) {
+		for (var col = from_col; col <= max; col++) {
 			cols.push(col);
 		}
 		return cols;
@@ -3456,7 +4281,7 @@
 		var max = (from_row || this.player_grid_data.row) +
 				(this.player_grid_data.size_y - 1);
 		var rows = [];
-		for (var row = from_row; row &lt;= max; row++) {
+		for (var row = from_row; row <= max; row++) {
 			rows.push(row);
 		}
 		return rows;
@@ -3467,7 +4292,7 @@
 	 *
 	 * @method get_cells_occupied
 	 * @param {Object} el_grid_data The grid coords object of the widget.
-	 * @return {Object} Returns an object like &#x60;{ cols: [], rows: []}&#x60;.
+	 * @return {Object} Returns an object like `{ cols: [], rows: []}`.
 	 */
 	fn.get_cells_occupied = function (el_grid_data) {
 		var cells = {cols: [], rows: []};
@@ -3476,12 +4301,12 @@
 			el_grid_data = arguments[1].coords().grid;
 		}
 
-		for (i = 0; i &lt; el_grid_data.size_x; i++) {
+		for (i = 0; i < el_grid_data.size_x; i++) {
 			var col = el_grid_data.col + i;
 			cells.cols.push(col);
 		}
 
-		for (i = 0; i &lt; el_grid_data.size_y; i++) {
+		for (i = 0; i < el_grid_data.size_y; i++) {
 			var row = el_grid_data.row + i;
 			cells.rows.push(row);
 		}
@@ -3523,7 +4348,7 @@
 	 * @return {Gridster} Returns the instance of the Gridster Class.
 	 */
 	fn.for_each_column_occupied = function (el_grid_data, callback) {
-		for (var i = 0; i &lt; el_grid_data.size_x; i++) {
+		for (var i = 0; i < el_grid_data.size_x; i++) {
 			var col = el_grid_data.col + i;
 			callback.call(this, col, el_grid_data);
 		}
@@ -3542,7 +4367,7 @@
 	 * @return {Gridster} Returns the instance of the Gridster Class.
 	 */
 	fn.for_each_row_occupied = function (el_grid_data, callback) {
-		for (var i = 0; i &lt; el_grid_data.size_y; i++) {
+		for (var i = 0; i < el_grid_data.size_y; i++) {
 			var row = el_grid_data.row + i;
 			callback.call(this, row, el_grid_data);
 		}
@@ -3560,8 +4385,8 @@
 
 	/**
 	 * Traverse a series of widgets
-	 * @param type - currently supported &#x27;for_each&#x27;
-	 * @param direction - The direction to traverse.  Supports &#x27;above&#x27; and &#x27;below&#x27;
+	 * @param type - currently supported 'for_each'
+	 * @param direction - The direction to traverse.  Supports 'above' and 'below'
 	 *    NOTE: the directions are based on the layout in the grid above is toward the top
 	 *    and below is toward the bottom. EG opposite direction of the row numbers
 	 * @param col - column to traverse
@@ -3576,7 +4401,7 @@
 		}
 
 		var cr, max;
-		var action = type + &#x27;/&#x27; + direction;
+		var action = type + '/' + direction;
 		if (arguments[2] instanceof $) {
 			var el_grid_data = arguments[2].coords().grid;
 			col = el_grid_data.col;
@@ -3588,9 +4413,9 @@
 
 
 		var methods = {
-			&#x27;for_each/above&#x27;: function () {
+			'for_each/above': function () {
 				while (trow--) {
-					if (trow &gt; 0 &amp;&amp; this.is_widget(col, trow) &amp;&amp;
+					if (trow > 0 && this.is_widget(col, trow) &&
 							$.inArray(ga[col][trow], matched) === -1
 					) {
 						cr = callback.call(ga[col][trow], col, trow);
@@ -3601,9 +4426,9 @@
 					}
 				}
 			},
-			&#x27;for_each/below&#x27;: function () {
-				for (trow = row + 1, max = ga[col].length; trow &lt; max; trow++) {
-					if (this.is_widget(col, trow) &amp;&amp;
+			'for_each/below': function () {
+				for (trow = row + 1, max = ga[col].length; trow < max; trow++) {
+					if (this.is_widget(col, trow) &&
 							$.inArray(ga[col][trow], matched) === -1
 					) {
 						cr = callback.call(ga[col][trow], col, trow);
@@ -3628,12 +4453,12 @@
 	 * @param {Number} col The column to start iterating.
 	 * @param {Number} row The row to start iterating.
 	 * @param {Function} callback The function to execute on each widget
-	 *  iteration. The value of &#x60;this&#x60; inside the function is the jQuery
+	 *  iteration. The value of `this` inside the function is the jQuery
 	 *  wrapped HTMLElement.
 	 * @return {Gridster} Returns the instance of the Gridster Class.
 	 */
 	fn.for_each_widget_above = function (col, row, callback) {
-		this._traversing_widgets(&#x27;for_each&#x27;, &#x27;above&#x27;, col, row, callback);
+		this._traversing_widgets('for_each', 'above', col, row, callback);
 		return this;
 	};
 
@@ -3645,12 +4470,12 @@
 	 * @param {Number} col The column to start iterating.
 	 * @param {Number} row The row to start iterating.
 	 * @param {Function} callback The function to execute on each widget
-	 *  iteration. The value of &#x60;this&#x60; inside the function is the jQuery wrapped
+	 *  iteration. The value of `this` inside the function is the jQuery wrapped
 	 *  HTMLElement.
 	 * @return {Gridster} Returns the instance of the Gridster Class.
 	 */
 	fn.for_each_widget_below = function (col, row, callback) {
-		this._traversing_widgets(&#x27;for_each&#x27;, &#x27;below&#x27;, col, row, callback);
+		this._traversing_widgets('for_each', 'below', col, row, callback);
 		return this;
 	};
 
@@ -3659,15 +4484,15 @@
 	 * Returns the highest occupied cell in the grid.
 	 *
 	 * @method get_highest_occupied_cell
-	 * @return {Object} Returns an object with &#x60;col&#x60; and &#x60;row&#x60; numbers.
+	 * @return {Object} Returns an object with `col` and `row` numbers.
 	 */
 	fn.get_highest_occupied_cell = function () {
 		var r;
 		var gm = this.gridmap;
 		var rl = gm[1].length;
 		var rows = [], cols = [];
-		for (var c = gm.length - 1; c &gt;= 1; c--) {
-			for (r = rl - 1; r &gt;= 1; r--) {
+		for (var c = gm.length - 1; c >= 1; c--) {
+			for (r = rl - 1; r >= 1; r--) {
 				if (this.is_widget(c, r)) {
 					rows.push(r);
 					cols.push(c);
@@ -3694,14 +4519,14 @@
 		var $widgets = $([]);
 		var c, r, $w, wgd;
 
-		for (c = col2; c &gt;= col1; c--) {
-			for (r = row2; r &gt;= row1; r--) {
+		for (c = col2; c >= col1; c--) {
+			for (r = row2; r >= row1; r--) {
 				$w = this.is_widget(c, r);
 
 				if ($w !== false) {
-					wgd = $w.data(&#x27;coords&#x27;).grid;
-					if (wgd.col &gt;= col1 &amp;&amp; wgd.col &lt;= col2 &amp;&amp;
-							wgd.row &gt;= row1 &amp;&amp; wgd.row &lt;= row2
+					wgd = $w.data('coords').grid;
+					if (wgd.col >= col1 && wgd.col <= col2 &&
+							wgd.row >= row1 && wgd.row <= row2
 					) {
 						$widgets = $widgets.add($w);
 					}
@@ -3725,7 +4550,7 @@
 	/**
 	 * gets the list of widgets in either the row or the col passed in_loop
 	 *  Not sure if this makes sense for the API or what the use case is,
-	 *   but I&#x27;m documenting it as it exists.
+	 *   but I'm documenting it as it exists.
 	 * @param col - a col to search for widgets from
 	 * @param row - a row to search for widgets from
 	 * @returns {*|jQuery|HTMLElement} - a collection of the widgets in either
@@ -3740,8 +4565,8 @@
 		if (col) {
 			$widgets = $widgets.add(
 					this.$widgets.filter(function () {
-						var tcol = parseInt($(this).attr(&#x27;data-col&#x27;));
-						return (tcol === col || tcol &gt; col);
+						var tcol = parseInt($(this).attr('data-col'));
+						return (tcol === col || tcol > col);
 					})
 			);
 		}
@@ -3749,8 +4574,8 @@
 		if (row) {
 			$widgets = $widgets.add(
 					this.$widgets.filter(function () {
-						var trow = parseInt($(this).attr(&#x27;data-row&#x27;));
-						return (trow === row || trow &gt; row);
+						var trow = parseInt($(this).attr('data-row'));
+						return (trow === row || trow > row);
 					})
 			);
 		}
@@ -3766,13 +4591,13 @@
 	 * @return {Object} Returns the instance of the Gridster class.
 	 */
 	fn.set_dom_grid_height = function (height) {
-		if (typeof height === &#x27;undefined&#x27;) {
+		if (typeof height === 'undefined') {
 			var r = this.get_highest_occupied_cell().row;
 			height = ((r + 1) * this.options.widget_margins[1]) + (r * this.min_widget_height);
 		}
 
 		this.container_height = height;
-		this.$el.css(&#x27;height&#x27;, this.container_height);
+		this.$el.css('height', this.container_height);
 		return this;
 	};
 
@@ -3783,7 +4608,7 @@
 	 * @return {Object} Returns the instance of the Gridster class.
 	 */
 	fn.set_dom_grid_width = function (cols) {
-		if (typeof cols === &#x27;undefined&#x27;) {
+		if (typeof cols === 'undefined') {
 			cols = this.get_highest_occupied_cell().col;
 		}
 
@@ -3792,10 +4617,10 @@
 		cols = Math.min(max_cols, Math.max(cols, this.options.min_cols));
 		this.container_width = ((cols + 1) * this.options.widget_margins[0]) + (cols * this.min_widget_width);
 		if (this.is_responsive()) {
-			this.$el.css({&#x27;min-width&#x27;: &#x27;100%&#x27;, &#x27;max-width&#x27;: &#x27;100%&#x27;});
+			this.$el.css({'min-width': '100%', 'max-width': '100%'});
 			return this; //if we are responsive exit before setting the width of $el
 		}
-		this.$el.css(&#x27;width&#x27;, this.container_width);
+		this.$el.css('width', this.container_width);
 
 		return this;
 	};
@@ -3807,7 +4632,7 @@
 	 * @returns {Boolean}
 	 */
 	fn.is_responsive = function () {
-		return this.options.autogenerate_stylesheet &amp;&amp; this.options.widget_base_dimensions[0] === &#x27;auto&#x27; &amp;&amp; this.options.max_cols !== Infinity;
+		return this.options.autogenerate_stylesheet && this.options.widget_base_dimensions[0] === 'auto' && this.options.max_cols !== Infinity;
 	};
 
 	/**
@@ -3841,12 +4666,12 @@
 	fn.toggle_collapsed_grid = function (collapse, opts) {
 		if (collapse) {
 			this.$widgets.css({
-				&#x27;margin-top&#x27;: opts.widget_margins[0],
-				&#x27;margin-bottom&#x27;: opts.widget_margins[0],
-				&#x27;min-height&#x27;: opts.widget_base_dimensions[1]
+				'margin-top': opts.widget_margins[0],
+				'margin-bottom': opts.widget_margins[0],
+				'min-height': opts.widget_base_dimensions[1]
 			});
 
-			this.$el.addClass(&#x27;collapsed&#x27;);
+			this.$el.addClass('collapsed');
 
 			if (this.resize_api) {
 				this.disable_resize();
@@ -3857,11 +4682,11 @@
 			}
 		} else {
 			this.$widgets.css({
-				&#x27;margin-top&#x27;: &#x27;auto&#x27;,
-				&#x27;margin-bottom&#x27;: &#x27;auto&#x27;,
-				&#x27;min-height&#x27;: &#x27;auto&#x27;
+				'margin-top': 'auto',
+				'margin-bottom': 'auto',
+				'min-height': 'auto'
 			});
-			this.$el.removeClass(&#x27;collapsed&#x27;);
+			this.$el.removeClass('collapsed');
 			if (this.resize_api) {
 				this.enable_resize();
 			}
@@ -3881,9 +4706,9 @@
 	 * @return {Object} Returns the instance of the Gridster class.
 	 */
 	fn.generate_stylesheet = function (opts) {
-		var styles = &#x27;&#x27;;
+		var styles = '';
 		var i;
-		var full_width = this.is_responsive() &amp;&amp; this.options.responsive_breakpoint &amp;&amp; ($(window).width() &lt; this.options.responsive_breakpoint);
+		var full_width = this.is_responsive() && this.options.responsive_breakpoint && ($(window).width() < this.options.responsive_breakpoint);
 
 		opts || (opts = {});
 		opts.cols || (opts.cols = this.cols);
@@ -3899,9 +4724,9 @@
 			this.toggle_collapsed_grid(full_width, opts);
 		}
 
-		// don&#x27;t duplicate stylesheets for the same configuration
+		// don't duplicate stylesheets for the same configuration
 		var serialized_opts = $.param(opts);
-		if ($.inArray(serialized_opts, Gridster.generated_stylesheets) &gt;= 0) {
+		if ($.inArray(serialized_opts, Gridster.generated_stylesheets) >= 0) {
 			return false;
 		}
 
@@ -3909,28 +4734,28 @@
 		Gridster.generated_stylesheets.push(serialized_opts);
 
 		/* generate CSS styles for cols */
-		for (i = 1; i &lt;= opts.cols + 1; i++) {
-			styles += (opts.namespace + &#x27; [data-col=&quot;&#x27; + i + &#x27;&quot;] { left:&#x27; +
+		for (i = 1; i <= opts.cols + 1; i++) {
+			styles += (opts.namespace + ' [data-col="' + i + '"] { left:' +
 			(full_width ? this.options.widget_margins[0] :
-					((i * opts.widget_margins[0]) + ((i - 1) * opts.widget_base_dimensions[0]))) + &#x27;px; }\n&#x27;);
+					((i * opts.widget_margins[0]) + ((i - 1) * opts.widget_base_dimensions[0]))) + 'px; }\n');
 		}
 
 		/* generate CSS styles for rows */
-		for (i = 1; i &lt;= opts.rows + 1; i++) {
-			styles += (opts.namespace + &#x27; [data-row=&quot;&#x27; + i + &#x27;&quot;] { top:&#x27; +
-			((i * opts.widget_margins[1]) + ((i - 1) * opts.widget_base_dimensions[1])) + &#x27;px; }\n&#x27;);
+		for (i = 1; i <= opts.rows + 1; i++) {
+			styles += (opts.namespace + ' [data-row="' + i + '"] { top:' +
+			((i * opts.widget_margins[1]) + ((i - 1) * opts.widget_base_dimensions[1])) + 'px; }\n');
 		}
 
-		for (var y = 1; y &lt;= opts.rows; y++) {
-			styles += (opts.namespace + &#x27; [data-sizey=&quot;&#x27; + y + &#x27;&quot;] { height:&#x27; +
-			(full_width ? &#x27;auto&#x27; : ((y * opts.widget_base_dimensions[1]) + ((y - 1) * opts.widget_margins[1]))) + (full_width ? &#x27;&#x27; : &#x27;px&#x27;) + &#x27;; }\n&#x27;);
+		for (var y = 1; y <= opts.rows; y++) {
+			styles += (opts.namespace + ' [data-sizey="' + y + '"] { height:' +
+			(full_width ? 'auto' : ((y * opts.widget_base_dimensions[1]) + ((y - 1) * opts.widget_margins[1]))) + (full_width ? '' : 'px') + '; }\n');
 
 		}
 
-		for (var x = 1; x &lt;= opts.cols; x++) {
+		for (var x = 1; x <= opts.cols; x++) {
 			var colWidth = ((x * opts.widget_base_dimensions[0]) + ((x - 1) * opts.widget_margins[0]));
-			styles += (opts.namespace + &#x27; [data-sizex=&quot;&#x27; + x + &#x27;&quot;] { width:&#x27; +
-			(full_width ? (this.$wrapper.width() - this.options.widget_margins[0] * 2) : colWidth &gt; this.$wrapper.width() ? this.$wrapper.width() : colWidth ) + &#x27;px; }\n&#x27;);
+			styles += (opts.namespace + ' [data-sizex="' + x + '"] { width:' +
+			(full_width ? (this.$wrapper.width() - this.options.widget_margins[0] * 2) : colWidth > this.$wrapper.width() ? this.$wrapper.width() : colWidth ) + 'px; }\n');
 
 		}
 
@@ -3949,17 +4774,17 @@
 	 */
 	fn.add_style_tag = function (css) {
 		var d = document;
-		var cssID = &#x27;gridster-stylesheet&#x27;;
-		if (this.options.namespace !== &#x27;&#x27;) {
-			cssID = cssID + &#x27;-&#x27; + this.options.namespace;
+		var cssID = 'gridster-stylesheet';
+		if (this.options.namespace !== '') {
+			cssID = cssID + '-' + this.options.namespace;
 		}
 
 		if (!document.getElementById(cssID)) {
-			var tag = d.createElement(&#x27;style&#x27;);
+			var tag = d.createElement('style');
 			tag.id = cssID;
 
-			d.getElementsByTagName(&#x27;head&#x27;)[0].appendChild(tag);
-			tag.setAttribute(&#x27;type&#x27;, &#x27;text/css&#x27;);
+			d.getElementsByTagName('head')[0].appendChild(tag);
+			tag.setAttribute('type', 'text/css');
 
 			if (tag.styleSheet) {
 				tag.styleSheet.cssText = css;
@@ -4009,9 +4834,9 @@
 		this.gridmap = [];
 		var col;
 		var row;
-		for (col = cols; col &gt; 0; col--) {
+		for (col = cols; col > 0; col--) {
 			this.gridmap[col] = [];
-			for (row = rows; row &gt; 0; row--) {
+			for (row = rows; row > 0; row--) {
 				this.add_faux_cell(row, col);
 			}
 		}
@@ -4043,7 +4868,7 @@
 			this.gridmap[col] = [];
 		}
 
-		if (typeof this.gridmap[col][row] === &#x27;undefined&#x27;) {
+		if (typeof this.gridmap[col][row] === 'undefined') {
 			this.gridmap[col][row] = false;
 		}
 		this.faux_grid.push(coords);
@@ -4065,8 +4890,8 @@
 		var actual_rows = this.rows;
 		var max_rows = actual_rows + parseInt(rows || 1);
 
-		for (var r = max_rows; r &gt; actual_rows; r--) {
-			for (var c = this.cols; c &gt;= 1; c--) {
+		for (var r = max_rows; r > actual_rows; r--) {
+			for (var c = this.cols; c >= 1; c--) {
 				this.add_faux_cell(r, c);
 			}
 		}
@@ -4094,8 +4919,8 @@
 		var max_cols = actual_cols + parseInt(cols || 1);
 		max_cols = Math.min(max_cols, this.options.max_cols);
 
-		for (var c = actual_cols + 1; c &lt;= max_cols; c++) {
-			for (var r = this.rows; r &gt;= 1; r--) {
+		for (var c = actual_cols + 1; c <= max_cols; c++) {
+			for (var r = this.rows; r >= 1; r--) {
 				this.add_faux_cell(r, c);
 			}
 		}
@@ -4122,7 +4947,7 @@
 		this.baseX = ($window.width() - aw) / 2;
 		this.baseY = this.$wrapper.offset().top;
 
-		if (this.$wrapper.css(&#x27;position&#x27;) === &#x27;relative&#x27;) {
+		if (this.$wrapper.css('position') === 'relative') {
 			this.baseX = this.baseY = 0;
 		}
 
@@ -4197,7 +5022,7 @@
 		}, this));
 
 		if (changes.length) {
-			this.$el.trigger(&#x27;gridster:positionschanged&#x27;);
+			this.$el.trigger('gridster:positionschanged');
 		}
 
 		return this;
@@ -4220,7 +5045,7 @@
 				this.options.extra_cols;
 
 		var actual_cols = this.$widgets.map(function () {
-			return $(this).attr(&#x27;data-col&#x27;);
+			return $(this).attr('data-col');
 		}).get();
 
 		//needed to pass tests with phantomjs
@@ -4230,7 +5055,7 @@
 
 		this.cols = Math.max(min_cols, cols, this.options.min_cols);
 
-		if (max_cols !== Infinity &amp;&amp; max_cols &gt;= min_cols &amp;&amp; max_cols &lt; this.cols) {
+		if (max_cols !== Infinity && max_cols >= min_cols && max_cols < this.cols) {
 			this.cols = max_cols;
 		}
 
@@ -4243,7 +5068,7 @@
 	    var max_rows = this.options.max_rows;
 
 	    var actual_rows = this.$widgets.map(function () {
-	        return $(this).attr(&#x27;data-row&#x27;);
+	        return $(this).attr('data-row');
 	    }).get();
 
 	    actual_rows.length || (actual_rows = [0]);
@@ -4252,7 +5077,7 @@
 
 	    this.rows = Math.max(min_rows, rows, this.options.min_rows);
 
-	    if (max_rows !== Infinity &amp;&amp; (max_rows &lt; min_rows || max_rows &lt; this.rows)) {
+	    if (max_rows !== Infinity && (max_rows < min_rows || max_rows < this.rows)) {
 	        max_rows = this.rows;
 	    }
 	    this.min_rows = min_rows;
@@ -4283,7 +5108,7 @@
 		// get all rows that could be occupied by the current widgets
 		var max_rows = this.options.extra_rows;
 		this.$widgets.each(function (i, w) {
-			max_rows += (+$(w).attr(&#x27;data-sizey&#x27;));
+			max_rows += (+$(w).attr('data-sizey'));
 		});
 
 		//this.rows = Math.max(max_rows, this.options.min_rows);
@@ -4307,15 +5132,15 @@
 	 * @return {Object} Returns the instance of the Gridster class.
 	 */
 	fn.destroy = function (remove) {
-		this.$el.removeData(&#x27;gridster&#x27;);
+		this.$el.removeData('gridster');
 
 		// remove coords from elements
 		$.each(this.$widgets, function () {
-			$(this).removeData(&#x27;coords&#x27;);
+			$(this).removeData('coords');
 		});
 
 		// remove bound callback on window resize
-		$window.unbind(&#x27;.gridster&#x27;);
+		$window.unbind('.gridster');
 
 		if (this.drag_api) {
 			this.drag_api.destroy();
@@ -4334,7 +5159,7 @@
 
 		this.remove_style_tags();
 
-		remove &amp;&amp; this.$el.remove();
+		remove && this.$el.remove();
 
 		return this;
 	};
@@ -4344,8 +5169,8 @@
 	$.fn.gridster = function (options) {
 		return this.each(function () {
 			var $this = $(this);
-			if (!$this.data(&#x27;gridster&#x27;)) {
-				$this.data(&#x27;gridster&#x27;, new Gridster(this, options));
+			if (!$this.data('gridster')) {
+				$this.data('gridster', new Gridster(this, options));
 			}
 		});
 	};
@@ -4353,22 +5178,3 @@
 	return Gridster;
 
 }));
-
-    </pre>
-</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<script src="../assets/vendor/prettify/prettify-min.js"></script>
-<script>prettyPrint();</script>
-<script src="../assets/js/yui-prettify.js"></script>
-<script src="../assets/../api.js"></script>
-<script src="../assets/js/api-filter.js"></script>
-<script src="../assets/js/api-list.js"></script>
-<script src="../assets/js/api-search.js"></script>
-<script src="../assets/js/apidocs.js"></script>
-</body>
-</html>
