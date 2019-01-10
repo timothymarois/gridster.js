@@ -59,14 +59,18 @@ and run bundle install.
 Add this line to app/assets/stylesheets/application.css
 
 ``` css
- *= require jquery.gridster
+ *= require jquery.dsmorse-gridster.min
 ```
+Note that the non-minified versions is `jquery.gridster`, should that be preferred.
+
 
 Add this line to app/assets/javascripts/application.js
 
 ``` javascript
-//= require jquery.gridster
+//= require jquery.dsmorse-gridster.min
 ```
+
+Note that `jquery.dsmorse-gridster`, `jquery.dsmorse-gridster.with-extras`, and `jquery.dsmorse-gridster.with-extras.min` are also available if you want a non-minified version or gridster with extras.
 
 ## Contributing to this project
 
