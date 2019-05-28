@@ -59,14 +59,18 @@ and run bundle install.
 Add this line to app/assets/stylesheets/application.css
 
 ``` css
- *= require jquery.gridster
+ *= require jquery.dsmorse-gridster.min
 ```
+Note that the non-minified versions is `jquery.gridster`, should that be preferred.
+
 
 Add this line to app/assets/javascripts/application.js
 
 ``` javascript
-//= require jquery.gridster
+//= require jquery.dsmorse-gridster.min
 ```
+
+Note that `jquery.dsmorse-gridster`, `jquery.dsmorse-gridster.with-extras`, and `jquery.dsmorse-gridster.with-extras.min` are also available if you want a non-minified version or gridster with extras.
 
 ## Contributing to this project
 
@@ -84,4 +88,4 @@ Distributed under the MIT license.
 ## Whodunit
 
 Gridster is built by [Ducksboard](http://ducksboard.com/) with the help of all
-these [wonderful people](https://github.com/ducksboard/gridster.js/graphs/contributors).
+these [wonderful people](https://github.com/dsmorse/gridster.js/graphs/contributors).
