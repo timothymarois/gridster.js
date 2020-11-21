@@ -1,5 +1,5 @@
 {
-  "name": "dsmorse-gridster",
+  "name": "tmarois-gridster",
   "title": "gridster.js",
   "description": "a drag-and-drop multi-column jQuery grid plugin",
   "version": "0.8.0",
@@ -9,16 +9,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/dsmorse/gridster.js.git"
+    "url": "git://github.com/timothymarois/gridster.js.git"
   },
   "bugs": {
-    "url": "https://github.com/dsmorse/gridster.js/issues"
+    "url": "https://github.com/timothymarois/gridster.js/issues"
   },
   "license": "MIT",
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/dsmorse/gridster.js/blob/master/LICENSE"
+      "url": "https://github.com/timothymarois/gridster.js/blob/master/LICENSE"
     }
   ],
   "keywords": [],
